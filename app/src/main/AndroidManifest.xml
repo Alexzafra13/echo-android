@@ -32,6 +32,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Media Playback Service -->
+        <service
+            android:name="com.echo.core.media.service.PlaybackService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

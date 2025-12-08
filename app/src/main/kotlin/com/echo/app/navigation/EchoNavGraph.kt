@@ -13,6 +13,7 @@ import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.feature.albums.presentation.detail.AlbumDetailScreen
 import com.echo.feature.auth.presentation.login.LoginScreen
 import com.echo.feature.home.presentation.HomeScreen
+import com.echo.feature.player.presentation.PlayerScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
 import com.echo.feature.server.presentation.welcome.WelcomeScreen
 
@@ -160,6 +161,18 @@ fun EchoNavGraph(
             )
         }
 
-        // TODO: Add remaining destinations (artists, player, search, etc.)
+        // Player
+        composable(EchoDestinations.PLAYER) {
+            PlayerScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToQueue = {
+                    navController.navigate(EchoDestinations.QUEUE)
+                }
+            )
+        }
+
+        // TODO: Add remaining destinations (artists, queue, search, etc.)
     }
 }
