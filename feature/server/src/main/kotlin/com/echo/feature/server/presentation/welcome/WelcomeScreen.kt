@@ -156,9 +156,9 @@ private fun ServerCard(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            if (server.lastConnectedAt != null) {
+            server.lastConnectedAt?.let { timestamp ->
                 Text(
-                    text = "Último acceso: ${formatLastConnected(server.lastConnectedAt)}",
+                    text = "Último acceso: ${formatLastConnected(timestamp)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
