@@ -20,6 +20,7 @@ import com.echo.feature.player.presentation.PlayerScreen
 import com.echo.feature.search.presentation.SearchScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
 import com.echo.feature.server.presentation.welcome.WelcomeScreen
+import com.echo.feature.settings.presentation.AdminScreen
 import com.echo.feature.settings.presentation.SettingsScreen
 
 object EchoDestinations {
@@ -42,6 +43,7 @@ object EchoDestinations {
     const val QUEUE = "queue"
     const val PROFILE = "profile"
     const val SETTINGS = "settings"
+    const val ADMIN = "admin"
     const val NOTIFICATIONS = "notifications"
 }
 
@@ -224,6 +226,18 @@ fun EchoNavGraph(
                     navController.navigate(EchoDestinations.WELCOME) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onNavigateToAdmin = {
+                    navController.navigate(EchoDestinations.ADMIN)
+                }
+            )
+        }
+
+        // Admin Panel
+        composable(EchoDestinations.ADMIN) {
+            AdminScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

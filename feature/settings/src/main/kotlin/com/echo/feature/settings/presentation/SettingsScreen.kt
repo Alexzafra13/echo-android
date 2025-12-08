@@ -17,6 +17,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LightMode
@@ -54,6 +56,7 @@ import com.echo.core.ui.theme.EchoCoral
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToAdmin: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -107,6 +110,20 @@ fun SettingsScreen(
                 title = "URL",
                 subtitle = state.serverUrl
             )
+
+            // Admin Section (only show if user is admin)
+            if (state.isAdmin) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                SectionHeader(title = "Administración")
+
+                SettingsItemWithArrow(
+                    icon = Icons.Default.AdminPanelSettings,
+                    title = "Panel de Administración",
+                    subtitle = "Estado del servidor, usuarios, configuración",
+                    onClick = onNavigateToAdmin
+                )
+            }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -310,6 +327,49 @@ private fun ThemeOption(
             colors = RadioButtonDefaults.colors(
                 selectedColor = EchoCoral
             )
+        )
+    }
+}
+
+@Composable
+private fun SettingsItemWithArrow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = EchoCoral,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
