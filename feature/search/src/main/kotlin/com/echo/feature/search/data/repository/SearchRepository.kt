@@ -74,15 +74,15 @@ class SearchRepository @Inject constructor(
     }
 
     suspend fun searchAlbums(query: String, limit: Int = 20): Result<List<SearchAlbum>> = runCatching {
-        getApi().searchAlbums(query, limit).data.map { it.toDomain() }
+        getApi().searchAlbums(query, limit).map { it.toDomain() }
     }
 
     suspend fun searchArtists(query: String, limit: Int = 20): Result<List<SearchArtist>> = runCatching {
-        getApi().searchArtists(query, limit).data.map { it.toDomain() }
+        getApi().searchArtists(query, limit).map { it.toDomain() }
     }
 
     suspend fun searchTracks(query: String, limit: Int = 20): Result<List<SearchTrack>> = runCatching {
-        getApi().searchTracks(query, limit).data.map { it.toDomain() }
+        getApi().searchTracks(query, limit).map { it.toDomain() }
     }
 
     suspend fun searchAll(query: String, limit: Int = 10): Triple<

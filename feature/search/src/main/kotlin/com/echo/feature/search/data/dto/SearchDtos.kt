@@ -2,32 +2,6 @@ package com.echo.feature.search.data.dto
 
 import kotlinx.serialization.Serializable
 
-sealed class SearchResultDto {
-    @Serializable
-    data class AlbumsResult(
-        val data: List<AlbumSearchDto>,
-        val total: Int = 0,
-        val skip: Int = 0,
-        val take: Int = 20
-    )
-
-    @Serializable
-    data class ArtistsResult(
-        val data: List<ArtistSearchDto>,
-        val total: Int = 0,
-        val skip: Int = 0,
-        val take: Int = 20
-    )
-
-    @Serializable
-    data class TracksResult(
-        val data: List<TrackSearchDto>,
-        val total: Int = 0,
-        val skip: Int = 0,
-        val take: Int = 20
-    )
-}
-
 @Serializable
 data class AlbumSearchDto(
     val id: String,
