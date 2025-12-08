@@ -20,18 +20,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,125 +46,86 @@ import com.echo.core.ui.components.AlbumCard
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.feature.albums.domain.model.Album
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToAlbum: (String) -> Unit,
-    onNavigateToSearch: () -> Unit,
-    onNavigateToProfile: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Echo",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        )
-                    )
-                },
-                actions = {
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Buscar"
-                        )
-                    }
-                    IconButton(onClick = onNavigateToProfile) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Perfil"
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (state.isLoading && state.recentAlbums.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = EchoCoral)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 100.dp)
+            ) {
+                // Hero Section
+                state.featuredAlbum?.let { album ->
+                    item {
+                        HeroSection(
+                            album = album,
+                            onClick = { onNavigateToAlbum(album.id) },
+                            onPlayClick = { viewModel.playAlbum(album) }
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (state.isLoading && state.recentAlbums.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = EchoCoral)
                 }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 100.dp)
-                ) {
-                    // Hero Section
-                    state.featuredAlbum?.let { album ->
-                        item {
-                            HeroSection(
-                                album = album,
-                                onClick = { onNavigateToAlbum(album.id) },
-                                onPlayClick = { viewModel.playAlbum(album) }
-                            )
-                        }
-                    }
 
-                    // Recently Added
-                    if (state.recentAlbums.isNotEmpty()) {
-                        item {
-                            AlbumSection(
-                                title = "Añadidos recientemente",
-                                albums = state.recentAlbums,
-                                onAlbumClick = onNavigateToAlbum,
-                                onPlayAlbum = { viewModel.playAlbum(it) }
-                            )
-                        }
+                // Recently Added
+                if (state.recentAlbums.isNotEmpty()) {
+                    item {
+                        AlbumSection(
+                            title = "Añadidos recientemente",
+                            albums = state.recentAlbums,
+                            onAlbumClick = onNavigateToAlbum,
+                            onPlayAlbum = { viewModel.playAlbum(it) }
+                        )
                     }
+                }
 
-                    // Top Played
-                    if (state.topPlayedAlbums.isNotEmpty()) {
-                        item {
-                            AlbumSection(
-                                title = "Más escuchados",
-                                albums = state.topPlayedAlbums,
-                                onAlbumClick = onNavigateToAlbum,
-                                onPlayAlbum = { viewModel.playAlbum(it) }
-                            )
-                        }
+                // Top Played
+                if (state.topPlayedAlbums.isNotEmpty()) {
+                    item {
+                        AlbumSection(
+                            title = "Más escuchados",
+                            albums = state.topPlayedAlbums,
+                            onAlbumClick = onNavigateToAlbum,
+                            onPlayAlbum = { viewModel.playAlbum(it) }
+                        )
                     }
+                }
 
-                    // Recently Played
-                    if (state.recentlyPlayedAlbums.isNotEmpty()) {
-                        item {
-                            AlbumSection(
-                                title = "Escuchados recientemente",
-                                albums = state.recentlyPlayedAlbums,
-                                onAlbumClick = onNavigateToAlbum,
-                                onPlayAlbum = { viewModel.playAlbum(it) }
-                            )
-                        }
+                // Recently Played
+                if (state.recentlyPlayedAlbums.isNotEmpty()) {
+                    item {
+                        AlbumSection(
+                            title = "Escuchados recientemente",
+                            albums = state.recentlyPlayedAlbums,
+                            onAlbumClick = onNavigateToAlbum,
+                            onPlayAlbum = { viewModel.playAlbum(it) }
+                        )
                     }
+                }
 
-                    // Error state
-                    state.error?.let { error ->
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(32.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = error,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
+                // Error state
+                state.error?.let { error ->
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error
+                            )
                         }
                     }
                 }

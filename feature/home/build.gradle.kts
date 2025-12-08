@@ -36,6 +36,8 @@ dependencies {
     implementation(project(":core:media"))
     implementation(project(":core:ui"))
     implementation(project(":feature:albums"))
+    implementation(project(":feature:artists"))
+    implementation(project(":feature:playlists"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.lifecycle)

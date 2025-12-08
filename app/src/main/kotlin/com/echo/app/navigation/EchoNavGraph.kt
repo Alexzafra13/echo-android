@@ -126,9 +126,7 @@ fun EchoNavGraph(
         composable(EchoDestinations.FIRST_LOGIN) {
             // TODO: Implement FirstLoginScreen
             HomeScreen(
-                onNavigateToAlbum = {},
-                onNavigateToSearch = {},
-                onNavigateToProfile = {}
+                onNavigateToAlbum = {}
             )
         }
 
@@ -137,12 +135,6 @@ fun EchoNavGraph(
             HomeScreen(
                 onNavigateToAlbum = { albumId ->
                     navController.navigate("${EchoDestinations.ALBUM_DETAIL}/$albumId")
-                },
-                onNavigateToSearch = {
-                    navController.navigate(EchoDestinations.SEARCH)
-                },
-                onNavigateToProfile = {
-                    navController.navigate(EchoDestinations.PROFILE)
                 }
             )
         }
