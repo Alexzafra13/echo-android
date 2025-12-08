@@ -16,6 +16,7 @@ import com.echo.feature.home.presentation.HomeScreen
 import com.echo.feature.player.presentation.PlayerScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
 import com.echo.feature.server.presentation.welcome.WelcomeScreen
+import com.echo.feature.settings.presentation.SettingsScreen
 
 object EchoDestinations {
     const val WELCOME = "welcome"
@@ -169,6 +170,20 @@ fun EchoNavGraph(
                 },
                 onNavigateToQueue = {
                     navController.navigate(EchoDestinations.QUEUE)
+                }
+            )
+        }
+
+        // Settings/Profile
+        composable(EchoDestinations.PROFILE) {
+            SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onLogout = {
+                    navController.navigate(EchoDestinations.WELCOME) {
+                        popUpTo(0) { inclusive = true }
+                    }
                 }
             )
         }
