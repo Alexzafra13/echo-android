@@ -8,33 +8,35 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +52,14 @@ import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkSurfaceVariant
 import com.echo.feature.albums.domain.model.Album
 
+enum class SortOption(val label: String) {
+    RECENT("Reciente"),
+    NAME_ASC("Nombre A-Z"),
+    NAME_DESC("Nombre Z-A"),
+    ARTIST("Artista"),
+    YEAR("Año")
+}
+
 @Composable
 fun LibraryScreen(
     onNavigateToAlbum: (String) -> Unit,
@@ -59,6 +69,7 @@ fun LibraryScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var sortOption by remember { mutableStateOf(SortOption.RECENT) }
     val tabs = listOf("Albums", "Artistas", "Playlists")
 
     Column(
@@ -106,8 +117,9 @@ fun LibraryScreen(
             0 -> AlbumsTab(
                 albums = state.albums,
                 isLoading = state.isLoading,
-                onAlbumClick = onNavigateToAlbum,
-                onPlayAlbum = viewModel::playAlbum
+                sortOption = sortOption,
+                onSortChange = { sortOption = it },
+                onAlbumClick = onNavigateToAlbum
             )
             1 -> ArtistsTab(
                 onArtistClick = onNavigateToArtist
@@ -123,29 +135,95 @@ fun LibraryScreen(
 private fun AlbumsTab(
     albums: List<Album>,
     isLoading: Boolean,
-    onAlbumClick: (String) -> Unit,
-    onPlayAlbum: (Album) -> Unit
+    sortOption: SortOption,
+    onSortChange: (SortOption) -> Unit,
+    onAlbumClick: (String) -> Unit
 ) {
-    if (isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(color = EchoCoral)
+    val sortedAlbums = remember(albums, sortOption) {
+        when (sortOption) {
+            SortOption.RECENT -> albums // Already sorted by recent from API
+            SortOption.NAME_ASC -> albums.sortedBy { it.title.lowercase() }
+            SortOption.NAME_DESC -> albums.sortedByDescending { it.title.lowercase() }
+            SortOption.ARTIST -> albums.sortedBy { it.artist.lowercase() }
+            SortOption.YEAR -> albums.sortedByDescending { it.year ?: 0 }
         }
-    } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.fillMaxSize()
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Sort selector
+        SortSelector(
+            currentSort = sortOption,
+            onSortChange = onSortChange,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = EchoCoral)
+            }
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 100.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(sortedAlbums, key = { it.id }) { album ->
+                    LibraryAlbumItem(
+                        album = album,
+                        onClick = { onAlbumClick(album.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SortSelector(
+    currentSort: SortOption,
+    onSortChange: (SortOption) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        TextButton(
+            onClick = { expanded = true }
         ) {
-            items(albums) { album ->
-                LibraryAlbumItem(
-                    album = album,
-                    onClick = { onAlbumClick(album.id) },
-                    onPlayClick = { onPlayAlbum(album) }
+            Text(
+                text = "Ordenar: ${currentSort.label}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            SortOption.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = option.label,
+                            color = if (option == currentSort) EchoCoral
+                                    else MaterialTheme.colorScheme.onSurface
+                        )
+                    },
+                    onClick = {
+                        onSortChange(option)
+                        expanded = false
+                    }
                 )
             }
         }
@@ -155,43 +233,23 @@ private fun AlbumsTab(
 @Composable
 private fun LibraryAlbumItem(
     album: Album,
-    onClick: () -> Unit,
-    onPlayClick: () -> Unit
+    onClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
-        Box {
-            AsyncImage(
-                model = album.coverUrl,
-                contentDescription = album.title,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(EchoDarkSurfaceVariant),
-                contentScale = ContentScale.Crop
-            )
-
-            // Play button overlay
-            IconButton(
-                onClick = onPlayClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp)
-                    .size(36.dp)
-                    .background(EchoCoral, RoundedCornerShape(50))
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Reproducir",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
+        AsyncImage(
+            model = album.coverUrl,
+            contentDescription = album.title,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(EchoDarkSurfaceVariant),
+            contentScale = ContentScale.Crop
+        )
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -218,7 +276,6 @@ private fun LibraryAlbumItem(
 private fun ArtistsTab(
     onArtistClick: (String) -> Unit
 ) {
-    // TODO: Implement artists list
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
@@ -246,7 +303,6 @@ private fun ArtistsTab(
 private fun PlaylistsTab(
     onPlaylistClick: (String) -> Unit
 ) {
-    // TODO: Implement playlists
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
