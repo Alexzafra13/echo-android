@@ -1,8 +1,11 @@
 package com.echo.core.media.player
 
 import android.content.Context
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import com.echo.core.media.model.PlayableTrack
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -37,7 +40,26 @@ class EchoPlayer @Inject constructor(
     private var currentQueue: List<PlayableTrack> = emptyList()
 
     private fun createPlayer(): ExoPlayer {
+        // Configure larger buffers for smoother streaming
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                30_000,  // Min buffer before playback starts (30s)
+                60_000,  // Max buffer size (60s)
+                2_500,   // Buffer for playback to start (2.5s)
+                5_000    // Buffer for rebuffering (5s)
+            )
+            .setPrioritizeTimeOverSizeThresholds(true)
+            .build()
+
+        // Audio attributes for music playback
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+
         return ExoPlayer.Builder(context)
+            .setLoadControl(loadControl)
+            .setAudioAttributes(audioAttributes, true) // true = handle audio focus
             .setHandleAudioBecomingNoisy(true)
             .build()
             .apply {
