@@ -1,5 +1,6 @@
 package com.echo.feature.home.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echo.core.media.usecase.PlayTracksUseCase
@@ -76,9 +77,11 @@ class LibraryViewModel @Inject constructor(
 
             artistsRepository.getArtists(skip = 0, take = 100)
                 .onSuccess { artists ->
+                    // Sort artists alphabetically by name
+                    val sortedArtists = artists.sortedBy { it.name.lowercase() }
                     _state.update {
                         it.copy(
-                            artists = artists,
+                            artists = sortedArtists,
                             isLoadingArtists = false
                         )
                     }
@@ -97,6 +100,7 @@ class LibraryViewModel @Inject constructor(
 
             playlistsRepository.getPlaylists()
                 .onSuccess { playlists ->
+                    Log.d("LibraryVM", "Loaded ${playlists.size} playlists")
                     _state.update {
                         it.copy(
                             playlists = playlists,
@@ -104,7 +108,8 @@ class LibraryViewModel @Inject constructor(
                         )
                     }
                 }
-                .onFailure {
+                .onFailure { error ->
+                    Log.e("LibraryVM", "Failed to load playlists", error)
                     _state.update {
                         it.copy(isLoadingPlaylists = false)
                     }
