@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -21,6 +22,8 @@ import com.echo.app.navigation.EchoDestinations
 import com.echo.app.navigation.EchoNavGraph
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.datastore.preferences.SessionPreferences
+import com.echo.core.datastore.preferences.ThemeMode
+import com.echo.core.datastore.preferences.ThemePreferences
 import com.echo.core.media.player.EchoPlayer
 import com.echo.core.ui.components.MiniPlayer
 import com.echo.core.ui.components.MiniPlayerState
@@ -40,12 +43,24 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var echoPlayer: EchoPlayer
 
+    @Inject
+    lateinit var themePreferences: ThemePreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            EchoTheme {
+            val themeMode by themePreferences.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val systemDarkTheme = isSystemInDarkTheme()
+
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> systemDarkTheme
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+
+            EchoTheme(darkTheme = darkTheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background

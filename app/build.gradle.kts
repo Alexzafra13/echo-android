@@ -78,6 +78,7 @@ dependencies {
     implementation(project(":feature:player"))
     implementation(project(":feature:playlists"))
     implementation(project(":feature:search"))
+    implementation(project(":feature:settings"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
