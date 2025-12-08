@@ -32,7 +32,9 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:network"))
+    implementation(project(":core:datastore"))
     implementation(project(":core:ui"))
+    implementation(project(":feature:albums"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.lifecycle)

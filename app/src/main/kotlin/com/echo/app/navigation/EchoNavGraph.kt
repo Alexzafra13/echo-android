@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.datastore.preferences.SessionPreferences
+import com.echo.feature.albums.presentation.detail.AlbumDetailScreen
 import com.echo.feature.auth.presentation.login.LoginScreen
 import com.echo.feature.home.presentation.HomeScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
@@ -142,6 +143,23 @@ fun EchoNavGraph(
             )
         }
 
-        // TODO: Add remaining destinations (albums, artists, player, etc.)
+        // Album Detail
+        composable(
+            route = "${EchoDestinations.ALBUM_DETAIL}/{albumId}",
+            arguments = listOf(
+                navArgument("albumId") { type = NavType.StringType }
+            )
+        ) {
+            AlbumDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate("${EchoDestinations.ARTIST_DETAIL}/$artistId")
+                }
+            )
+        }
+
+        // TODO: Add remaining destinations (artists, player, search, etc.)
     }
 }
