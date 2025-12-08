@@ -6,6 +6,10 @@ import com.echo.core.media.usecase.PlayTracksUseCase
 import com.echo.core.media.usecase.TrackInfo
 import com.echo.feature.albums.data.repository.AlbumsRepository
 import com.echo.feature.albums.domain.model.Album
+import com.echo.feature.artists.data.repository.ArtistsRepository
+import com.echo.feature.artists.domain.model.Artist
+import com.echo.feature.playlists.data.repository.PlaylistsRepository
+import com.echo.feature.playlists.domain.model.Playlist
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,13 +20,19 @@ import javax.inject.Inject
 
 data class LibraryState(
     val albums: List<Album> = emptyList(),
+    val artists: List<Artist> = emptyList(),
+    val playlists: List<Playlist> = emptyList(),
     val isLoading: Boolean = false,
+    val isLoadingArtists: Boolean = false,
+    val isLoadingPlaylists: Boolean = false,
     val error: String? = null
 )
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val albumsRepository: AlbumsRepository,
+    private val artistsRepository: ArtistsRepository,
+    private val playlistsRepository: PlaylistsRepository,
     private val playTracksUseCase: PlayTracksUseCase
 ) : ViewModel() {
 
@@ -31,6 +41,8 @@ class LibraryViewModel @Inject constructor(
 
     init {
         loadAlbums()
+        loadArtists()
+        loadPlaylists()
     }
 
     private fun loadAlbums() {
@@ -53,6 +65,48 @@ class LibraryViewModel @Inject constructor(
                             isLoading = false,
                             error = error.message
                         )
+                    }
+                }
+        }
+    }
+
+    private fun loadArtists() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingArtists = true) }
+
+            artistsRepository.getArtists(skip = 0, take = 100)
+                .onSuccess { artists ->
+                    _state.update {
+                        it.copy(
+                            artists = artists,
+                            isLoadingArtists = false
+                        )
+                    }
+                }
+                .onFailure {
+                    _state.update {
+                        it.copy(isLoadingArtists = false)
+                    }
+                }
+        }
+    }
+
+    private fun loadPlaylists() {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingPlaylists = true) }
+
+            playlistsRepository.getPlaylists()
+                .onSuccess { playlists ->
+                    _state.update {
+                        it.copy(
+                            playlists = playlists,
+                            isLoadingPlaylists = false
+                        )
+                    }
+                }
+                .onFailure {
+                    _state.update {
+                        it.copy(isLoadingPlaylists = false)
                     }
                 }
         }
@@ -83,5 +137,7 @@ class LibraryViewModel @Inject constructor(
 
     fun refresh() {
         loadAlbums()
+        loadArtists()
+        loadPlaylists()
     }
 }
