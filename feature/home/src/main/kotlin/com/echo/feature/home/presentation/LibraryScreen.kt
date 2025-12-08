@@ -350,7 +350,7 @@ private fun ArtistItem(
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Circular image or placeholder
+        // Circular image with fallback icon behind
         Box(
             modifier = Modifier
                 .size(100.dp)
@@ -358,21 +358,22 @@ private fun ArtistItem(
                 .background(EchoDarkSurfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            if (artist.imageUrl != null) {
-                AsyncImage(
-                    model = artist.imageUrl,
-                    contentDescription = artist.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(40.dp)
-                )
-            }
+            // Fallback icon (shown if image fails or while loading)
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(40.dp)
+            )
+            // Actual image on top
+            AsyncImage(
+                model = artist.imageUrl,
+                contentDescription = artist.name,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))
