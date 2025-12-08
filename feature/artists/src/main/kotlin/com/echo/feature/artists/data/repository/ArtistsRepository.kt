@@ -20,18 +20,25 @@ class ArtistsRepository @Inject constructor(
         return apiClientFactory.getClient(server.url).create(ArtistsApi::class.java)
     }
 
-    private fun ArtistDto.toDomain(): Artist {
+    private fun buildImageUrl(baseUrl: String, artistId: String): String {
+        return "$baseUrl/api/images/artists/$artistId/profile"
+    }
+
+    private suspend fun ArtistDto.toDomain(): Artist {
+        val server = serverPreferences.activeServer.first()
+        val baseUrl = server?.url ?: ""
         return Artist(
             id = id,
             name = name,
-            imageUrl = imageUrl,
+            imageUrl = buildImageUrl(baseUrl, id),
             albumCount = albumCount ?: 0,
             trackCount = trackCount ?: 0
         )
     }
 
     suspend fun getArtists(skip: Int = 0, take: Int = 50): Result<List<Artist>> = runCatching {
-        getApi().getArtists(skip, take).data.map { it.toDomain() }
+        val artists = getApi().getArtists(skip, take).data
+        artists.map { it.toDomain() }
     }
 
     suspend fun getArtist(artistId: String): Result<Artist> = runCatching {
@@ -39,6 +46,7 @@ class ArtistsRepository @Inject constructor(
     }
 
     suspend fun searchArtists(query: String, limit: Int = 20): Result<List<Artist>> = runCatching {
-        getApi().searchArtists(query, limit).map { it.toDomain() }
+        val artists = getApi().searchArtists(query, limit)
+        artists.map { it.toDomain() }
     }
 }
