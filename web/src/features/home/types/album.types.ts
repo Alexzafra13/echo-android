@@ -1,0 +1,110 @@
+/**
+ * Album entity type
+ * Represents a music album with all its metadata
+ */
+export interface Album {
+  id: string;
+  title: string;
+  artist: string;
+  artistId: string;
+  coverImage: string;
+  backgroundImage?: string;
+  albumArt?: string;
+  year: number;
+  releaseDate?: string;
+  totalTracks: number;
+  duration?: number;
+  genres?: string[];
+  addedAt: Date;
+}
+
+/**
+ * Props for AlbumCard component
+ */
+export interface AlbumCardProps {
+  cover: string;
+  title: string;
+  artist: string;
+  onClick?: () => void;
+  onPlayClick?: () => void;
+}
+
+/**
+ * Props for AlbumGrid component
+ */
+export interface AlbumGridProps {
+  title: string;
+  albums: Album[];
+}
+
+/**
+ * Hero item - can be an Album or an Artist Playlist
+ */
+export type HeroItem =
+  | { type: 'album'; data: Album }
+  | { type: 'playlist'; data: import('@shared/services/recommendations.service').AutoPlaylist };
+
+/**
+ * Type guard to check if HeroItem is an album
+ */
+export function isHeroAlbum(item: HeroItem): item is { type: 'album'; data: Album } {
+  return item.type === 'album';
+}
+
+/**
+ * Type guard to check if HeroItem is a playlist
+ */
+export function isHeroPlaylist(item: HeroItem): item is { type: 'playlist'; data: import('@shared/services/recommendations.service').AutoPlaylist } {
+  return item.type === 'playlist';
+}
+
+/**
+ * Props for HeroSection component
+ */
+export interface HeroSectionProps {
+  item: HeroItem;
+  onPlay?: () => void;
+  onNext?: () => void;
+  onPrevious?: () => void;
+}
+
+/**
+ * Hero album data with playback state
+ */
+export interface HeroAlbumData {
+  album: Album;
+  isPlaying?: boolean;
+}
+
+/**
+ * Album sort/filter options
+ */
+export type AlbumSortOption = 'recent' | 'alphabetical' | 'recently-played' | 'top-played' | 'favorites';
+
+/**
+ * Response type for alphabetically sorted albums
+ */
+export interface AlbumsAlphabeticalResponse {
+  albums: Album[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Response type for recently played albums
+ */
+export interface AlbumsRecentlyPlayedResponse {
+  albums: Album[];
+}
+
+/**
+ * Response type for favorite albums
+ */
+export interface AlbumsFavoritesResponse {
+  albums: Album[];
+  page?: number;
+  limit?: number;
+  hasMore?: boolean;
+}

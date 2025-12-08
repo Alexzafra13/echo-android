@@ -1,0 +1,817 @@
+/**
+ * PublicProfilePage Styles
+ * Spotify-inspired profile with hero banner and dynamic gradient
+ */
+
+/* Layout */
+.publicProfilePage {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.publicProfilePage__main {
+  flex: 1;
+  margin-left: 200px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.publicProfilePage__content {
+  flex: 1 1 0;
+  min-height: 0;
+  margin-top: -84px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.publicProfilePage__content::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hero Section - Gradient Banner */
+.publicProfilePage__hero {
+  position: relative;
+  padding: 120px 40px 80px;
+  min-height: 420px;
+}
+
+.publicProfilePage__hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--hero-color, #4a3470) 0%, var(--hero-color, #4a3470) 30%, transparent 100%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.publicProfilePage__heroGradient {
+  display: none;
+}
+
+.publicProfilePage__heroContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 32px;
+}
+
+/* Avatar */
+.publicProfilePage__avatar {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.publicProfilePage__avatarPlaceholder {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: var(--white-10);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* Hero Info */
+.publicProfilePage__heroInfo {
+  min-width: 0;
+  padding-bottom: 8px;
+}
+
+.publicProfilePage__profileLabel {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.publicProfilePage__name {
+  font-size: clamp(32px, 5vw, 72px);
+  font-weight: 900;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.publicProfilePage__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.publicProfilePage__metaDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+}
+
+.publicProfilePage__metaHighlight {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.publicProfilePage__bio {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-top: 12px;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+/* Listening Now - Positioned to the right */
+.publicProfilePage__listeningNow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(var(--color-primary-rgb, 249, 115, 22), 0.12);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-decoration: none;
+  max-width: 280px;
+  align-self: flex-end;
+  margin-left: 32px;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease, background 0.2s ease;
+}
+
+.publicProfilePage__listeningNow--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.publicProfilePage__listeningNow--hidden {
+  opacity: 0;
+  transform: translateX(20px);
+}
+
+.publicProfilePage__listeningNow:hover {
+  background: rgba(var(--color-primary-rgb, 249, 115, 22), 0.18);
+}
+
+.publicProfilePage__listeningNowCover {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.publicProfilePage__listeningNowCoverPlaceholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: var(--white-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.publicProfilePage__listeningNowInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.publicProfilePage__listeningNowLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-primary);
+}
+
+.publicProfilePage__listeningNowTrack {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__listeningNowArtist {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__listeningNowBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.publicProfilePage__listeningNowBar {
+  width: 3px;
+  background: var(--color-primary);
+  border-radius: 1px;
+  animation: soundBars 0.8s ease-in-out infinite;
+}
+
+.publicProfilePage__listeningNowBar:nth-child(1) {
+  height: 6px;
+  animation-delay: 0s;
+}
+
+.publicProfilePage__listeningNowBar:nth-child(2) {
+  height: 14px;
+  animation-delay: 0.2s;
+}
+
+.publicProfilePage__listeningNowBar:nth-child(3) {
+  height: 10px;
+  animation-delay: 0.4s;
+}
+
+.publicProfilePage__listeningNowBar:nth-child(4) {
+  height: 16px;
+  animation-delay: 0.1s;
+}
+
+@keyframes soundBars {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.4); }
+}
+
+/* Actions Bar */
+.publicProfilePage__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 40px 32px;
+}
+
+.publicProfilePage__friendBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 32px;
+  border-radius: 500px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.publicProfilePage__friendBtn--primary {
+  background: var(--text-primary);
+  color: var(--color-bg-primary);
+}
+
+.publicProfilePage__friendBtn--primary:hover {
+  transform: scale(1.04);
+  background: #fff;
+}
+
+.publicProfilePage__friendBtn--secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--white-30);
+}
+
+.publicProfilePage__friendBtn--secondary:hover {
+  border-color: var(--text-primary);
+}
+
+.publicProfilePage__friendBtn--pending {
+  background: var(--white-10);
+  color: var(--text-secondary);
+  cursor: default;
+}
+
+.publicProfilePage__friendBtn--accepted {
+  background: rgba(30, 215, 96, 0.15);
+  color: #1ed760;
+  border: 1px solid rgba(30, 215, 96, 0.3);
+}
+
+.publicProfilePage__friendActions {
+  display: flex;
+  gap: 8px;
+}
+
+.publicProfilePage__iconBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid var(--white-20);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.publicProfilePage__iconBtn:hover {
+  border-color: var(--text-primary);
+  color: var(--text-primary);
+}
+
+.publicProfilePage__iconBtn--danger:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* Content Area */
+.publicProfilePage__contentInner {
+  padding: 0 40px calc(40px + var(--player-bottom-spacer, 0px));
+}
+
+/* Section */
+.publicProfilePage__section {
+  margin-bottom: 48px;
+}
+
+.publicProfilePage__sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.publicProfilePage__sectionTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.publicProfilePage__sectionLink {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.publicProfilePage__sectionLink:hover {
+  color: var(--text-primary);
+}
+
+/* Artists Grid */
+.publicProfilePage__artistsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 24px;
+}
+
+.publicProfilePage__artistCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background: var(--white-03);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.3s ease;
+}
+
+.publicProfilePage__artistCard:hover {
+  background: var(--white-08);
+}
+
+.publicProfilePage__artistImage {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.publicProfilePage__artistPlaceholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: var(--white-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--text-tertiary);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.publicProfilePage__artistName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.publicProfilePage__artistMeta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Albums Grid */
+.publicProfilePage__albumsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px;
+}
+
+.publicProfilePage__albumCard {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--white-03);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.3s ease;
+}
+
+.publicProfilePage__albumCard:hover {
+  background: var(--white-08);
+}
+
+.publicProfilePage__albumCover {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  object-fit: cover;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.publicProfilePage__albumPlaceholder {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: var(--white-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  color: var(--text-tertiary);
+}
+
+.publicProfilePage__albumName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__albumArtist {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__albumMeta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* Tracks List */
+.publicProfilePage__trackList {
+  display: flex;
+  flex-direction: column;
+}
+
+.publicProfilePage__trackItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px;
+  margin: 0 -8px;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.publicProfilePage__trackItem:hover {
+  background: var(--white-05);
+}
+
+.publicProfilePage__trackNumber {
+  width: 20px;
+  font-size: 15px;
+  color: var(--text-tertiary);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.publicProfilePage__trackItem:hover .publicProfilePage__trackNumber {
+  color: var(--text-primary);
+}
+
+.publicProfilePage__trackCover {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.publicProfilePage__trackCoverPlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  background: var(--white-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.publicProfilePage__trackInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.publicProfilePage__trackTitle {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__trackArtist {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__trackPlays {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+/* Playlist Grid */
+.publicProfilePage__playlistGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px;
+}
+
+.publicProfilePage__playlistCard {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: var(--white-03);
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.3s ease;
+}
+
+.publicProfilePage__playlistCard:hover {
+  background: var(--white-08);
+}
+
+.publicProfilePage__playlistCoverWrapper {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.publicProfilePage__playlistName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.publicProfilePage__playlistMeta {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Private Profile Message */
+.publicProfilePage__privateMessage {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.publicProfilePage__privateIcon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--white-05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  color: var(--text-tertiary);
+}
+
+.publicProfilePage__privateMessage h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px 0;
+}
+
+.publicProfilePage__privateMessage p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Loading */
+.publicProfilePage__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: var(--text-secondary);
+  gap: 16px;
+}
+
+/* Empty State */
+.publicProfilePage__empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-tertiary);
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .publicProfilePage__main {
+    margin-left: 0;
+  }
+
+  .publicProfilePage__hero {
+    padding: 100px 24px 32px;
+    min-height: 280px;
+  }
+
+  .publicProfilePage__heroContent {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .publicProfilePage__avatar,
+  .publicProfilePage__avatarPlaceholder {
+    width: 160px;
+    height: 160px;
+    font-size: 3.5rem;
+  }
+
+  .publicProfilePage__listeningNow {
+    max-width: 100%;
+    margin-left: 0;
+    margin-top: 16px;
+    align-self: center;
+    transform: translateY(10px);
+  }
+
+  .publicProfilePage__listeningNow--visible {
+    transform: translateY(0);
+  }
+
+  .publicProfilePage__listeningNow--hidden {
+    transform: translateY(-10px);
+  }
+
+  .publicProfilePage__heroInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .publicProfilePage__name {
+    font-size: 32px;
+  }
+
+  .publicProfilePage__meta {
+    justify-content: center;
+  }
+
+  .publicProfilePage__bio {
+    text-align: center;
+  }
+
+  .publicProfilePage__actions {
+    justify-content: center;
+    padding: 20px 24px 28px;
+  }
+
+  .publicProfilePage__contentInner {
+    padding: 0 24px calc(60px + var(--player-bottom-spacer, 0px));
+  }
+
+  .publicProfilePage__artistsGrid,
+  .publicProfilePage__albumsGrid,
+  .publicProfilePage__playlistGrid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+  }
+
+  .publicProfilePage__artistCard,
+  .publicProfilePage__albumCard,
+  .publicProfilePage__playlistCard {
+    padding: 12px;
+  }
+
+  .publicProfilePage__artistImage,
+  .publicProfilePage__artistPlaceholder {
+    width: 100px;
+    height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .publicProfilePage__hero {
+    padding: 90px 16px 24px;
+  }
+
+  .publicProfilePage__avatar,
+  .publicProfilePage__avatarPlaceholder {
+    width: 120px;
+    height: 120px;
+    font-size: 2.5rem;
+  }
+
+  .publicProfilePage__name {
+    font-size: 28px;
+  }
+
+  .publicProfilePage__actions {
+    padding: 16px;
+  }
+
+  .publicProfilePage__contentInner {
+    padding: 0 16px calc(60px + var(--player-bottom-spacer, 0px));
+  }
+
+  .publicProfilePage__sectionTitle {
+    font-size: 20px;
+  }
+
+  .publicProfilePage__artistsGrid,
+  .publicProfilePage__albumsGrid,
+  .publicProfilePage__playlistGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
