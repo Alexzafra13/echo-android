@@ -1,82 +1,76 @@
 package com.echo.core.ui.theme
 
 import android.app.Activity
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = EchoPrimary,
+    primary = EchoCoral,
     onPrimary = Color.White,
-    primaryContainer = EchoPrimaryDark,
+    primaryContainer = EchoCoralDark,
     onPrimaryContainer = Color.White,
-    secondary = EchoSecondary,
-    onSecondary = Color.White,
-    secondaryContainer = EchoSecondary,
+    secondary = EchoTeal,
+    onSecondary = Color.Black,
+    secondaryContainer = EchoTealDark,
     onSecondaryContainer = Color.White,
-    tertiary = EchoAccent,
+    tertiary = EchoTeal,
     background = EchoDarkBackground,
-    onBackground = EchoTextLight,
+    onBackground = EchoTextPrimary,
     surface = EchoDarkSurface,
-    onSurface = EchoTextLight,
+    onSurface = EchoTextPrimary,
     surfaceVariant = EchoDarkSurfaceVariant,
-    onSurfaceVariant = EchoTextLightSecondary,
+    onSurfaceVariant = EchoTextSecondary,
     error = EchoError,
-    onError = Color.White
+    onError = Color.White,
+    outline = EchoBorderDark,
+    outlineVariant = EchoGlassBorder
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = EchoPrimary,
+    primary = EchoCoral,
     onPrimary = Color.White,
-    primaryContainer = EchoPrimary,
-    onPrimaryContainer = Color.White,
-    secondary = EchoSecondary,
+    primaryContainer = EchoCoralLight,
+    onPrimaryContainer = EchoCoralDark,
+    secondary = EchoTealDark,
     onSecondary = Color.White,
-    secondaryContainer = EchoSecondary,
-    onSecondaryContainer = Color.White,
-    tertiary = EchoAccent,
+    secondaryContainer = EchoTeal,
+    onSecondaryContainer = Color.Black,
+    tertiary = EchoTeal,
     background = EchoLightBackground,
-    onBackground = EchoTextDark,
+    onBackground = EchoTextPrimaryLight,
     surface = EchoLightSurface,
-    onSurface = EchoTextDark,
+    onSurface = EchoTextPrimaryLight,
     surfaceVariant = EchoLightSurfaceVariant,
-    onSurfaceVariant = EchoTextDarkSecondary,
+    onSurfaceVariant = EchoTextSecondaryLight,
     error = EchoError,
-    onError = Color.White
+    onError = Color.White,
+    outline = EchoBorderLight,
+    outlineVariant = EchoBorderLight
 )
 
 @Composable
 fun EchoTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = !darkTheme
         }
     }
 
