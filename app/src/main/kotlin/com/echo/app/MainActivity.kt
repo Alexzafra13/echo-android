@@ -10,14 +10,18 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.echo.app.navigation.EchoDestinations
 import com.echo.app.navigation.EchoNavGraph
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.datastore.preferences.SessionPreferences
+import com.echo.core.media.player.EchoPlayer
 import com.echo.core.ui.components.MiniPlayer
 import com.echo.core.ui.components.MiniPlayerState
 import com.echo.core.ui.theme.EchoTheme
@@ -33,6 +37,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var sessionPreferences: SessionPreferences
 
+    @Inject
+    lateinit var echoPlayer: EchoPlayer
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -45,9 +52,24 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     val session by sessionPreferences.session.collectAsState()
+                    val playerState by echoPlayer.state.collectAsState()
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
 
-                    // Show MiniPlayer only when logged in
-                    val showMiniPlayer = session != null
+                    // Hide MiniPlayer on login/welcome screens and full player screen
+                    val currentRoute = navBackStackEntry?.destination?.route
+                    val hideMiniPlayerRoutes = listOf(
+                        EchoDestinations.WELCOME,
+                        EchoDestinations.ADD_SERVER,
+                        EchoDestinations.LOGIN,
+                        EchoDestinations.PLAYER
+                    )
+                    val showMiniPlayer by remember(currentRoute, playerState.currentTrack) {
+                        derivedStateOf {
+                            playerState.currentTrack != null &&
+                                currentRoute != null &&
+                                !hideMiniPlayerRoutes.any { currentRoute.startsWith(it) }
+                        }
+                    }
 
                     Box(modifier = Modifier.fillMaxSize()) {
                         EchoNavGraph(
@@ -59,21 +81,21 @@ class MainActivity : ComponentActivity() {
                         // MiniPlayer at the bottom
                         MiniPlayer(
                             state = MiniPlayerState(
-                                isVisible = false, // TODO: Connect to actual player state
-                                isPlaying = false,
-                                trackTitle = "",
-                                artistName = "",
-                                coverUrl = null,
-                                progress = 0f
+                                isVisible = showMiniPlayer,
+                                isPlaying = playerState.isPlaying,
+                                trackTitle = playerState.currentTrack?.title ?: "",
+                                artistName = playerState.currentTrack?.artist ?: "",
+                                coverUrl = playerState.currentTrack?.coverUrl,
+                                progress = playerState.progress
                             ),
                             onPlayerClick = {
                                 navController.navigate(EchoDestinations.PLAYER)
                             },
                             onPlayPauseClick = {
-                                // TODO: Toggle playback
+                                echoPlayer.togglePlayPause()
                             },
                             onNextClick = {
-                                // TODO: Skip to next track
+                                echoPlayer.seekToNext()
                             },
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
