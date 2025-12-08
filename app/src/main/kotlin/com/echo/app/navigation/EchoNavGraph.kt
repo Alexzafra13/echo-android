@@ -13,7 +13,9 @@ import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.feature.albums.presentation.detail.AlbumDetailScreen
 import com.echo.feature.auth.presentation.login.LoginScreen
 import com.echo.feature.home.presentation.HomeScreen
+import com.echo.feature.home.presentation.LibraryScreen
 import com.echo.feature.player.presentation.PlayerScreen
+import com.echo.feature.search.presentation.SearchScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
 import com.echo.feature.server.presentation.welcome.WelcomeScreen
 import com.echo.feature.settings.presentation.SettingsScreen
@@ -47,23 +49,16 @@ fun EchoNavGraph(
     val activeServer by serverPreferences.activeServer.collectAsState(initial = null)
     val session by sessionPreferences.session.collectAsState()
 
-    // Determine start destination
+    // Determine start destination based on auth state
     val startDestination = when {
         activeServer == null -> EchoDestinations.WELCOME
-        session == null -> "${EchoDestinations.LOGIN}/{serverId}"
-        session?.mustChangePassword == true -> EchoDestinations.FIRST_LOGIN
+        session == null -> EchoDestinations.WELCOME
         else -> EchoDestinations.HOME
     }
 
     NavHost(
         navController = navController,
-        startDestination = if (activeServer == null) {
-            EchoDestinations.WELCOME
-        } else if (session == null) {
-            EchoDestinations.WELCOME // Will navigate to login
-        } else {
-            EchoDestinations.HOME
-        }
+        startDestination = startDestination
     ) {
         // Welcome - Server selection
         composable(EchoDestinations.WELCOME) {
@@ -141,6 +136,33 @@ fun EchoNavGraph(
                 },
                 onNavigateToProfile = {
                     navController.navigate(EchoDestinations.PROFILE)
+                }
+            )
+        }
+
+        // Search
+        composable(EchoDestinations.SEARCH) {
+            SearchScreen(
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate("${EchoDestinations.ALBUM_DETAIL}/$albumId")
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate("${EchoDestinations.ARTIST_DETAIL}/$artistId")
+                }
+            )
+        }
+
+        // Library
+        composable(EchoDestinations.LIBRARY) {
+            LibraryScreen(
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate("${EchoDestinations.ALBUM_DETAIL}/$albumId")
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate("${EchoDestinations.ARTIST_DETAIL}/$artistId")
+                },
+                onNavigateToPlaylist = { playlistId ->
+                    navController.navigate("${EchoDestinations.PLAYLIST_DETAIL}/$playlistId")
                 }
             )
         }
