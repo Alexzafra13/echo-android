@@ -38,12 +38,26 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.bundles.lifecycle)
+
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.compose)
+
+    // Navigation
     implementation(libs.androidx.navigation.compose)
+
+    // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.hilt.navigation.compose)
+
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.kotlinx.serialization.json)
+
+    // Images
     implementation(libs.coil.compose)
+
+    // Testing
     testImplementation(libs.junit)
 }
