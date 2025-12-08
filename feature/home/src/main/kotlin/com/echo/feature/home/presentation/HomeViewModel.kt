@@ -2,8 +2,11 @@ package com.echo.feature.home.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.echo.core.media.usecase.PlayTracksUseCase
+import com.echo.core.media.usecase.TrackInfo
 import com.echo.feature.albums.data.repository.AlbumsRepository
 import com.echo.feature.albums.domain.model.Album
+import com.echo.feature.albums.domain.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,7 +26,8 @@ data class HomeState(
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val albumsRepository: AlbumsRepository
+    private val albumsRepository: AlbumsRepository,
+    private val playTracksUseCase: PlayTracksUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeState())
@@ -66,5 +70,37 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         loadHomeData()
+    }
+
+    fun playAlbum(album: Album) {
+        viewModelScope.launch {
+            try {
+                // Fetch album tracks
+                val result = albumsRepository.getAlbumWithTracks(album.id)
+                result.onSuccess { albumWithTracks ->
+                    val trackInfos = albumWithTracks.tracks.map { track ->
+                        track.toTrackInfo(albumWithTracks.album)
+                    }
+                    if (trackInfos.isNotEmpty()) {
+                        playTracksUseCase.playTracks(trackInfos, 0)
+                    }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
+    }
+
+    private fun Track.toTrackInfo(album: Album): TrackInfo {
+        return TrackInfo(
+            id = id,
+            title = title,
+            artist = artistName ?: album.artist,
+            albumId = album.id,
+            albumTitle = album.title,
+            duration = (duration ?: 0) * 1000L,
+            trackNumber = trackNumber ?: 0,
+            coverUrl = coverUrl ?: album.coverUrl
+        )
     }
 }

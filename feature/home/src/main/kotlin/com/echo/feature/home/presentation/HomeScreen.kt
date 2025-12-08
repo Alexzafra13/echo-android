@@ -116,7 +116,8 @@ fun HomeScreen(
                         item {
                             HeroSection(
                                 album = album,
-                                onClick = { onNavigateToAlbum(album.id) }
+                                onClick = { onNavigateToAlbum(album.id) },
+                                onPlayClick = { viewModel.playAlbum(album) }
                             )
                         }
                     }
@@ -127,7 +128,8 @@ fun HomeScreen(
                             AlbumSection(
                                 title = "Añadidos recientemente",
                                 albums = state.recentAlbums,
-                                onAlbumClick = onNavigateToAlbum
+                                onAlbumClick = onNavigateToAlbum,
+                                onPlayAlbum = { viewModel.playAlbum(it) }
                             )
                         }
                     }
@@ -138,7 +140,8 @@ fun HomeScreen(
                             AlbumSection(
                                 title = "Más escuchados",
                                 albums = state.topPlayedAlbums,
-                                onAlbumClick = onNavigateToAlbum
+                                onAlbumClick = onNavigateToAlbum,
+                                onPlayAlbum = { viewModel.playAlbum(it) }
                             )
                         }
                     }
@@ -149,7 +152,8 @@ fun HomeScreen(
                             AlbumSection(
                                 title = "Escuchados recientemente",
                                 albums = state.recentlyPlayedAlbums,
-                                onAlbumClick = onNavigateToAlbum
+                                onAlbumClick = onNavigateToAlbum,
+                                onPlayAlbum = { viewModel.playAlbum(it) }
                             )
                         }
                     }
@@ -179,7 +183,8 @@ fun HomeScreen(
 @Composable
 private fun HeroSection(
     album: Album,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onPlayClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
@@ -278,7 +283,7 @@ private fun HeroSection(
                         )
                         .size(48.dp)
                         .background(EchoCoral, CircleShape)
-                        .clickable { /* Play album */ },
+                        .clickable(onClick = onPlayClick),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -297,7 +302,8 @@ private fun HeroSection(
 private fun AlbumSection(
     title: String,
     albums: List<Album>,
-    onAlbumClick: (String) -> Unit
+    onAlbumClick: (String) -> Unit,
+    onPlayAlbum: (Album) -> Unit
 ) {
     Column(
         modifier = Modifier.padding(vertical = 16.dp)
@@ -325,7 +331,7 @@ private fun AlbumSection(
                     artist = album.artist,
                     coverUrl = album.coverUrl,
                     onClick = { onAlbumClick(album.id) },
-                    onPlayClick = { /* Play album */ },
+                    onPlayClick = { onPlayAlbum(album) },
                     modifier = Modifier.width(150.dp)
                 )
             }
