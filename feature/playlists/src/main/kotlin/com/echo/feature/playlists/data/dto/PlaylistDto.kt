@@ -10,9 +10,19 @@ data class PlaylistDto(
     val trackCount: Int? = null,
     val duration: Int? = null,
     val isPublic: Boolean? = null,
+    val public: Boolean? = null,
     val coverUrl: String? = null,
+    val coverImageUrl: String? = null,
     val createdAt: String? = null,
     val updatedAt: String? = null
+)
+
+@Serializable
+data class PlaylistsPageDto(
+    val data: List<PlaylistDto>,
+    val total: Int,
+    val skip: Int,
+    val take: Int
 )
 
 @Serializable

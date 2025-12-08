@@ -28,15 +28,15 @@ class PlaylistsRepository @Inject constructor(
             description = description,
             trackCount = trackCount ?: 0,
             duration = duration ?: 0,
-            isPublic = isPublic ?: false,
-            coverUrl = coverUrl,
+            isPublic = isPublic ?: public ?: false,
+            coverUrl = coverUrl ?: coverImageUrl,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
     }
 
-    suspend fun getPlaylists(): Result<List<Playlist>> = runCatching {
-        getApi().getPlaylists().map { it.toDomain() }
+    suspend fun getPlaylists(skip: Int = 0, take: Int = 50): Result<List<Playlist>> = runCatching {
+        getApi().getPlaylists(skip, take).data.map { it.toDomain() }
     }
 
     suspend fun getPlaylist(playlistId: String): Result<Playlist> = runCatching {
