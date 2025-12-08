@@ -27,8 +27,8 @@ import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.core.datastore.preferences.ThemeMode
 import com.echo.core.datastore.preferences.ThemePreferences
 import com.echo.core.media.player.EchoPlayer
-import com.echo.core.ui.components.BottomNavItem
 import com.echo.core.ui.components.EchoBottomNavBar
+import com.echo.core.ui.components.EchoTopBar
 import com.echo.core.ui.components.MiniPlayer
 import com.echo.core.ui.components.MiniPlayerState
 import com.echo.core.ui.theme.EchoTheme
@@ -85,14 +85,14 @@ class MainActivity : ComponentActivity() {
                     val isAuthScreen = currentRoute != null &&
                         authRoutes.any { currentRoute.startsWith(it) }
 
-                    // Show bottom nav only on main screens
+                    // Main screens where we show top bar and bottom nav
                     val mainRoutes = listOf(
                         EchoDestinations.HOME,
-                        EchoDestinations.SEARCH,
                         EchoDestinations.LIBRARY,
-                        EchoDestinations.PROFILE
+                        EchoDestinations.RADIO,
+                        EchoDestinations.SOCIAL
                     )
-                    val showBottomNav by remember(currentRoute) {
+                    val isMainScreen by remember(currentRoute) {
                         derivedStateOf {
                             currentRoute != null && mainRoutes.any { currentRoute == it }
                         }
@@ -108,58 +108,71 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Main content with padding for bottom elements
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize()
-                            ) {
-                                EchoNavGraph(
-                                    navController = navController,
-                                    serverPreferences = serverPreferences,
-                                    sessionPreferences = sessionPreferences
-                                )
-                            }
-
-                            // MiniPlayer above bottom nav
-                            MiniPlayer(
-                                state = MiniPlayerState(
-                                    isVisible = showMiniPlayer,
-                                    isPlaying = playerState.isPlaying,
-                                    trackTitle = playerState.currentTrack?.title ?: "",
-                                    artistName = playerState.currentTrack?.artist ?: "",
-                                    coverUrl = playerState.currentTrack?.coverUrl,
-                                    progress = playerState.progress
-                                ),
-                                onPlayerClick = {
-                                    navController.navigate(EchoDestinations.PLAYER)
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // Top Bar (only on main screens)
+                        if (isMainScreen) {
+                            EchoTopBar(
+                                onSearchClick = {
+                                    navController.navigate(EchoDestinations.SEARCH)
                                 },
-                                onPlayPauseClick = {
-                                    echoPlayer.togglePlayPause()
+                                onNotificationsClick = {
+                                    // TODO: Navigate to notifications
                                 },
-                                onNextClick = {
-                                    echoPlayer.seekToNext()
+                                onProfileClick = {
+                                    navController.navigate(EchoDestinations.PROFILE)
                                 }
                             )
+                        }
 
-                            // Bottom Navigation
-                            if (showBottomNav) {
-                                EchoBottomNavBar(
-                                    currentRoute = currentRoute,
-                                    onNavigate = { item ->
-                                        navController.navigate(item.route) {
-                                            popUpTo(EchoDestinations.HOME) {
-                                                saveState = true
-                                            }
-                                            launchSingleTop = true
-                                            restoreState = true
-                                        }
-                                    },
-                                    modifier = Modifier.navigationBarsPadding()
-                                )
+                        // Main content
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxSize()
+                        ) {
+                            EchoNavGraph(
+                                navController = navController,
+                                serverPreferences = serverPreferences,
+                                sessionPreferences = sessionPreferences
+                            )
+                        }
+
+                        // MiniPlayer above bottom nav
+                        MiniPlayer(
+                            state = MiniPlayerState(
+                                isVisible = showMiniPlayer,
+                                isPlaying = playerState.isPlaying,
+                                trackTitle = playerState.currentTrack?.title ?: "",
+                                artistName = playerState.currentTrack?.artist ?: "",
+                                coverUrl = playerState.currentTrack?.coverUrl,
+                                progress = playerState.progress
+                            ),
+                            onPlayerClick = {
+                                navController.navigate(EchoDestinations.PLAYER)
+                            },
+                            onPlayPauseClick = {
+                                echoPlayer.togglePlayPause()
+                            },
+                            onNextClick = {
+                                echoPlayer.seekToNext()
                             }
+                        )
+
+                        // Bottom Navigation
+                        if (isMainScreen) {
+                            EchoBottomNavBar(
+                                currentRoute = currentRoute,
+                                onNavigate = { item ->
+                                    navController.navigate(item.route) {
+                                        popUpTo(EchoDestinations.HOME) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                },
+                                modifier = Modifier.navigationBarsPadding()
+                            )
                         }
                     }
                 }

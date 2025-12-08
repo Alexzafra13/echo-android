@@ -21,6 +21,7 @@ data class SettingsState(
     val serverUrl: String = "",
     val serverName: String = "",
     val username: String = "",
+    val isAdmin: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val appVersion: String = "1.0.0",
     val showLogoutDialog: Boolean = false
@@ -45,6 +46,7 @@ class SettingsViewModel @Inject constructor(
             serverUrl = server?.url ?: "",
             serverName = server?.name ?: "Echo Server",
             username = session?.username ?: "",
+            isAdmin = session?.isAdmin ?: false,
             themeMode = themeMode,
             showLogoutDialog = showLogout
         )
