@@ -8,22 +8,20 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LibraryMusic
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Radio
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -52,13 +50,6 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.Home
     )
 
-    data object Search : BottomNavItem(
-        route = "search",
-        title = "Buscar",
-        selectedIcon = Icons.Filled.Search,
-        unselectedIcon = Icons.Outlined.Search
-    )
-
     data object Library : BottomNavItem(
         route = "library",
         title = "Biblioteca",
@@ -66,19 +57,26 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.LibraryMusic
     )
 
-    data object Profile : BottomNavItem(
-        route = "profile",
-        title = "Perfil",
-        selectedIcon = Icons.Filled.Person,
-        unselectedIcon = Icons.Outlined.Person
+    data object Radio : BottomNavItem(
+        route = "radio",
+        title = "Radio",
+        selectedIcon = Icons.Filled.Radio,
+        unselectedIcon = Icons.Outlined.Radio
+    )
+
+    data object Social : BottomNavItem(
+        route = "social",
+        title = "Social",
+        selectedIcon = Icons.Filled.Group,
+        unselectedIcon = Icons.Outlined.Group
     )
 }
 
 val bottomNavItems = listOf(
     BottomNavItem.Home,
-    BottomNavItem.Search,
     BottomNavItem.Library,
-    BottomNavItem.Profile
+    BottomNavItem.Radio,
+    BottomNavItem.Social
 )
 
 @Composable

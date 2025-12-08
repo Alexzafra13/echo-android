@@ -14,6 +14,8 @@ import com.echo.feature.albums.presentation.detail.AlbumDetailScreen
 import com.echo.feature.auth.presentation.login.LoginScreen
 import com.echo.feature.home.presentation.HomeScreen
 import com.echo.feature.home.presentation.LibraryScreen
+import com.echo.feature.home.presentation.RadioScreen
+import com.echo.feature.home.presentation.SocialScreen
 import com.echo.feature.player.presentation.PlayerScreen
 import com.echo.feature.search.presentation.SearchScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
@@ -28,6 +30,8 @@ object EchoDestinations {
     const val HOME = "home"
     const val SEARCH = "search"
     const val LIBRARY = "library"
+    const val RADIO = "radio"
+    const val SOCIAL = "social"
     const val ALBUMS = "albums"
     const val ALBUM_DETAIL = "album"
     const val ARTISTS = "artists"
@@ -38,6 +42,7 @@ object EchoDestinations {
     const val QUEUE = "queue"
     const val PROFILE = "profile"
     const val SETTINGS = "settings"
+    const val NOTIFICATIONS = "notifications"
 }
 
 @Composable
@@ -148,6 +153,9 @@ fun EchoNavGraph(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate("${EchoDestinations.ARTIST_DETAIL}/$artistId")
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -165,6 +173,16 @@ fun EchoNavGraph(
                     navController.navigate("${EchoDestinations.PLAYLIST_DETAIL}/$playlistId")
                 }
             )
+        }
+
+        // Radio
+        composable(EchoDestinations.RADIO) {
+            RadioScreen()
+        }
+
+        // Social
+        composable(EchoDestinations.SOCIAL) {
+            SocialScreen()
         }
 
         // Album Detail
