@@ -134,6 +134,441 @@ sealed class AlbumsEffect {
 
 ---
 
+## Flujo de Conexión (Estilo Jellyfin)
+
+La app soportará conexión a servidores Echo self-hosted, similar a como funciona Jellyfin. El usuario primero configura el servidor y luego inicia sesión.
+
+### Flujo de Usuario
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                         PRIMERA EJECUCIÓN                             │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                     1. PANTALLA DE BIENVENIDA                         │
+│                                                                       │
+│     ┌─────────────────────────────────────────────────────────┐      │
+│     │                     🎵 Echo                              │      │
+│     │                                                          │      │
+│     │          Tu música, tu servidor, tu control              │      │
+│     │                                                          │      │
+│     │     ┌──────────────────────────────────────────────┐    │      │
+│     │     │          Conectar a un servidor              │    │      │
+│     │     └──────────────────────────────────────────────┘    │      │
+│     │                                                          │      │
+│     │     ┌──────────────────────────────────────────────┐    │      │
+│     │     │          Servidores guardados (0)            │    │      │
+│     │     └──────────────────────────────────────────────┘    │      │
+│     └─────────────────────────────────────────────────────────┘      │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                   2. AÑADIR SERVIDOR                                  │
+│                                                                       │
+│     ┌─────────────────────────────────────────────────────────┐      │
+│     │         Conectar a servidor Echo                         │      │
+│     │                                                          │      │
+│     │  Dirección del servidor:                                 │      │
+│     │  ┌──────────────────────────────────────────────────┐   │      │
+│     │  │  https://echo.midominio.com                       │   │      │
+│     │  └──────────────────────────────────────────────────┘   │      │
+│     │                                                          │      │
+│     │  ⓘ Ejemplos:                                            │      │
+│     │    • https://echo.ejemplo.com                           │      │
+│     │    • http://192.168.1.100:3000                          │      │
+│     │    • https://mi-servidor.duckdns.org/echo               │      │
+│     │                                                          │      │
+│     │     ┌──────────────────────────────────────────────┐    │      │
+│     │     │              Conectar                         │    │      │
+│     │     └──────────────────────────────────────────────┘    │      │
+│     └─────────────────────────────────────────────────────────┘      │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                         Validación: GET /health
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+              ✅ Servidor OK                  ❌ Error
+                    │                               │
+                    │                               ▼
+                    │                     Mostrar error:
+                    │                     "No se pudo conectar"
+                    ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│                      3. LOGIN                                         │
+│                                                                       │
+│     ┌─────────────────────────────────────────────────────────┐      │
+│     │         Iniciar sesión                                   │      │
+│     │         echo.midominio.com                               │      │
+│     │                                                          │      │
+│     │  Usuario:                                                │      │
+│     │  ┌──────────────────────────────────────────────────┐   │      │
+│     │  │  admin                                            │   │      │
+│     │  └──────────────────────────────────────────────────┘   │      │
+│     │                                                          │      │
+│     │  Contraseña:                                             │      │
+│     │  ┌──────────────────────────────────────────────────┐   │      │
+│     │  │  ••••••••                                         │   │      │
+│     │  └──────────────────────────────────────────────────┘   │      │
+│     │                                                          │      │
+│     │  ☐ Recordar credenciales                                │      │
+│     │                                                          │      │
+│     │     ┌──────────────────────────────────────────────┐    │      │
+│     │     │            Iniciar sesión                     │    │      │
+│     │     └──────────────────────────────────────────────┘    │      │
+│     │                                                          │      │
+│     │     ← Usar otro servidor                                │      │
+│     └─────────────────────────────────────────────────────────┘      │
+└──────────────────────────────────────────────────────────────────────┘
+                                    │
+                         POST /auth/login
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+              ✅ Login OK                    ❌ Error 401
+              (tokens)                        "Credenciales inválidas"
+                    │
+                    ▼
+           ┌───────────────┐
+           │mustChangePassword?│
+           └───────────────┘
+                    │
+        ┌───────────┴───────────┐
+        ▼                       ▼
+   true (first login)      false (normal)
+        │                       │
+        ▼                       ▼
+ FirstLoginScreen            HomeScreen
+```
+
+### Modelo de Datos - Servidor
+
+```kotlin
+// Servidor guardado
+data class EchoServer(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String,           // Nombre amigable (auto o manual)
+    val url: String,            // https://echo.example.com
+    val addedAt: Instant,
+    val lastConnectedAt: Instant?
+)
+
+// Sesión activa en un servidor
+data class ServerSession(
+    val serverId: String,
+    val userId: String,
+    val username: String,
+    val accessToken: String,
+    val refreshToken: String,
+    val expiresAt: Instant,
+    val streamToken: String?    // Token para streaming de audio
+)
+
+// Estado global de conexión
+data class ConnectionState(
+    val currentServer: EchoServer?,
+    val session: ServerSession?,
+    val isConnected: Boolean,
+    val user: User?
+)
+```
+
+### Almacenamiento Seguro
+
+```kotlin
+// ServerStore.kt - Gestión de servidores (DataStore)
+class ServerStore @Inject constructor(
+    private val dataStore: DataStore<Preferences>,
+    private val encryptedPrefs: EncryptedSharedPreferences
+) {
+    // Lista de servidores guardados
+    val servers: Flow<List<EchoServer>>
+
+    // Servidor activo actual
+    val activeServer: Flow<EchoServer?>
+
+    suspend fun addServer(server: EchoServer)
+    suspend fun removeServer(serverId: String)
+    suspend fun setActiveServer(serverId: String)
+
+    // Credenciales encriptadas (opcional - "recordar credenciales")
+    suspend fun saveCredentials(serverId: String, username: String, password: String)
+    suspend fun getCredentials(serverId: String): Credentials?
+    suspend fun clearCredentials(serverId: String)
+}
+
+// SessionManager.kt - Gestión de sesión activa
+class SessionManager @Inject constructor(
+    private val encryptedDataStore: EncryptedDataStore,
+    private val serverStore: ServerStore
+) {
+    val session: StateFlow<ServerSession?>
+    val isLoggedIn: StateFlow<Boolean>
+
+    suspend fun login(server: EchoServer, username: String, password: String): Result<User>
+    suspend fun logout()
+    suspend fun refreshTokenIfNeeded(): Boolean
+
+    // Cambiar de servidor
+    suspend fun switchServer(serverId: String)
+}
+```
+
+### Estructura del Módulo Server
+
+```
+feature/
+└── server/                       # Módulo de gestión de servidores
+    ├── data/
+    │   ├── local/
+    │   │   ├── ServerDao.kt              # Room DAO
+    │   │   └── ServerEntity.kt           # Room Entity
+    │   ├── repository/
+    │   │   └── ServerRepositoryImpl.kt
+    │   └── api/
+    │       └── ServerValidationApi.kt    # Health check
+    │
+    ├── domain/
+    │   ├── model/
+    │   │   ├── EchoServer.kt
+    │   │   └── ServerSession.kt
+    │   ├── repository/
+    │   │   └── ServerRepository.kt
+    │   └── usecase/
+    │       ├── ValidateServerUseCase.kt
+    │       ├── AddServerUseCase.kt
+    │       ├── RemoveServerUseCase.kt
+    │       ├── GetServersUseCase.kt
+    │       └── SwitchServerUseCase.kt
+    │
+    └── presentation/
+        ├── welcome/
+        │   ├── WelcomeScreen.kt
+        │   └── WelcomeViewModel.kt
+        ├── addserver/
+        │   ├── AddServerScreen.kt
+        │   ├── AddServerViewModel.kt
+        │   └── AddServerState.kt
+        └── serverlist/
+            ├── ServerListScreen.kt
+            └── ServerListViewModel.kt
+```
+
+### Validación de Servidor
+
+```kotlin
+class ValidateServerUseCase @Inject constructor(
+    private val httpClient: OkHttpClient
+) {
+    suspend operator fun invoke(serverUrl: String): Result<ServerInfo> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Normalizar URL
+                val normalizedUrl = normalizeUrl(serverUrl)
+
+                // 1. Verificar conectividad con /health
+                val healthResponse = httpClient.newCall(
+                    Request.Builder()
+                        .url("$normalizedUrl/api/health")
+                        .build()
+                ).execute()
+
+                if (!healthResponse.isSuccessful) {
+                    return@withContext Result.failure(
+                        ServerConnectionException("Server responded with ${healthResponse.code}")
+                    )
+                }
+
+                // 2. Obtener info del servidor (nombre, versión, etc.)
+                val serverInfo = parseHealthResponse(healthResponse.body?.string())
+
+                Result.success(serverInfo)
+
+            } catch (e: UnknownHostException) {
+                Result.failure(ServerNotFoundException("Cannot resolve host"))
+            } catch (e: ConnectException) {
+                Result.failure(ServerConnectionException("Connection refused"))
+            } catch (e: SocketTimeoutException) {
+                Result.failure(ServerTimeoutException("Connection timed out"))
+            } catch (e: SSLException) {
+                Result.failure(ServerSSLException("SSL certificate error"))
+            }
+        }
+    }
+
+    private fun normalizeUrl(url: String): String {
+        var normalized = url.trim()
+
+        // Añadir esquema si no tiene
+        if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+            normalized = "https://$normalized"
+        }
+
+        // Quitar trailing slash
+        normalized = normalized.trimEnd('/')
+
+        return normalized
+    }
+}
+
+data class ServerInfo(
+    val name: String,
+    val version: String?,
+    val healthy: Boolean
+)
+```
+
+### OkHttp Dinámico (Multi-servidor)
+
+```kotlin
+// ApiClientFactory.kt - Crear cliente para servidor específico
+class ApiClientFactory @Inject constructor(
+    private val sessionManager: SessionManager
+) {
+    private val clients = mutableMapOf<String, Retrofit>()
+
+    fun getClient(server: EchoServer): Retrofit {
+        return clients.getOrPut(server.id) {
+            createRetrofitClient(server.url)
+        }
+    }
+
+    private fun createRetrofitClient(baseUrl: String): Retrofit {
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(sessionManager))
+            .authenticator(TokenAuthenticator(sessionManager))
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl("$baseUrl/api/")
+            .client(okHttpClient)
+            .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
+            .build()
+    }
+}
+
+// Uso en repositorios
+class AlbumsRepositoryImpl @Inject constructor(
+    private val apiFactory: ApiClientFactory,
+    private val serverStore: ServerStore
+) : AlbumsRepository {
+
+    override suspend fun getAlbums(): List<Album> {
+        val server = serverStore.activeServer.first()
+            ?: throw NoActiveServerException()
+
+        val api = apiFactory.getClient(server).create(AlbumsApi::class.java)
+        return api.getAlbums().map { it.toDomain() }
+    }
+}
+```
+
+### Navegación con Servidor
+
+```kotlin
+// Actualizar navegación para incluir flujo de servidor
+@Composable
+fun EchoNavGraph(
+    navController: NavHostController,
+    connectionState: ConnectionState
+) {
+    val startDestination = when {
+        connectionState.currentServer == null -> EchoDestinations.WELCOME
+        connectionState.session == null -> EchoDestinations.LOGIN
+        connectionState.user?.mustChangePassword == true -> EchoDestinations.FIRST_LOGIN
+        else -> EchoDestinations.HOME
+    }
+
+    NavHost(
+        navController = navController,
+        startDestination = startDestination
+    ) {
+        // Server management
+        composable(EchoDestinations.WELCOME) {
+            WelcomeScreen(
+                onAddServer = { navController.navigate(EchoDestinations.ADD_SERVER) },
+                onSelectServer = { serverId ->
+                    navController.navigate("${EchoDestinations.LOGIN}/$serverId")
+                }
+            )
+        }
+
+        composable(EchoDestinations.ADD_SERVER) {
+            AddServerScreen(
+                onServerAdded = { server ->
+                    navController.navigate("${EchoDestinations.LOGIN}/${server.id}")
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = "${EchoDestinations.LOGIN}/{serverId}",
+            arguments = listOf(navArgument("serverId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val serverId = backStackEntry.arguments?.getString("serverId") ?: ""
+            LoginScreen(
+                serverId = serverId,
+                onLoginSuccess = { navController.navigate(EchoDestinations.HOME) },
+                onChangeServer = { navController.navigate(EchoDestinations.WELCOME) }
+            )
+        }
+
+        // ... resto de rutas
+    }
+}
+
+object EchoDestinations {
+    const val WELCOME = "welcome"
+    const val ADD_SERVER = "add_server"
+    const val SERVER_LIST = "server_list"
+    const val LOGIN = "login"
+    // ... resto
+}
+```
+
+### Funcionalidades Multi-Servidor
+
+La arquitectura soporta múltiples servidores guardados:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Servidores guardados                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  🎵  Echo Casa                               ✓ Activo   │    │
+│  │      https://echo.casa.local                            │    │
+│  │      Último acceso: Hace 2 horas                        │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  🎵  Echo Trabajo                                       │    │
+│  │      https://music.empresa.com/echo                     │    │
+│  │      Último acceso: Hace 3 días                         │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  ➕  Añadir nuevo servidor                              │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Características:**
+- Guardar múltiples servidores
+- Cambiar entre servidores sin cerrar la app
+- Recordar credenciales por servidor (opcional, encriptado)
+- Mostrar último acceso y estado de conexión
+- Editar/eliminar servidores guardados
+
+---
+
 ## Estructura de Módulos
 
 ```
@@ -204,6 +639,30 @@ echo-android/
 │               └── di/MediaModule.kt
 │
 ├── feature/                      # Feature modules
+│   ├── server/                   # Gestión de servidores (estilo Jellyfin)
+│   │   ├── data/
+│   │   │   ├── local/
+│   │   │   │   ├── ServerDao.kt
+│   │   │   │   └── ServerEntity.kt
+│   │   │   ├── repository/ServerRepositoryImpl.kt
+│   │   │   └── api/ServerValidationApi.kt
+│   │   ├── domain/
+│   │   │   ├── model/
+│   │   │   │   ├── EchoServer.kt
+│   │   │   │   └── ServerSession.kt
+│   │   │   ├── repository/ServerRepository.kt
+│   │   │   └── usecase/
+│   │   │       ├── ValidateServerUseCase.kt
+│   │   │       ├── AddServerUseCase.kt
+│   │   │       └── SwitchServerUseCase.kt
+│   │   └── presentation/
+│   │       ├── welcome/
+│   │       │   ├── WelcomeScreen.kt
+│   │       │   └── WelcomeViewModel.kt
+│   │       └── addserver/
+│   │           ├── AddServerScreen.kt
+│   │           └── AddServerViewModel.kt
+│   │
 │   ├── auth/
 │   │   ├── data/
 │   │   │   ├── api/AuthApi.kt
@@ -655,15 +1114,24 @@ object EchoDestinations {
    - Setup de Hilt, Retrofit, Room
 
 2. **Core modules**
-   - `:core:network` - API client, interceptors
-   - `:core:database` - Room setup
-   - `:core:datastore` - Auth tokens, preferences
+   - `:core:network` - API client dinámico (multi-servidor), interceptors
+   - `:core:database` - Room setup (servidores, caché)
+   - `:core:datastore` - Tokens, servidor activo, preferencias
    - `:core:ui` - Theme, componentes básicos
 
-3. **Autenticación**
-   - Login screen
+3. **Conexión a servidor (estilo Jellyfin)**
+   - Pantalla de bienvenida
+   - Añadir servidor (validación con /health)
+   - Lista de servidores guardados
+   - Persistencia de servidores en Room
+   - Cambio entre servidores
+
+4. **Autenticación**
+   - Login screen (por servidor)
    - Token management (access + refresh)
-   - Auth state global
+   - Recordar credenciales (opcional, encriptado)
+   - Auth state global con SessionManager
+   - First login (cambio de contraseña obligatorio)
 
 ### Fase 2: Biblioteca Musical (2-3 semanas)
 1. **Álbumes**
