@@ -1,0 +1,158 @@
+/* AlbumGrid Component Styles - BEM Naming Convention */
+
+/* Block: albumGrid */
+.albumGrid {
+  margin-bottom: 40px;
+}
+
+.albumGrid__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0 20px;
+}
+
+.albumGrid__title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+  margin: 0;
+}
+
+.albumGrid__viewAllButton {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.albumGrid__viewAllButton:hover {
+  color: var(--text-primary);
+  background-color: var(--surface-hover);
+}
+
+.albumGrid__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+  padding: 0 20px;
+  /* NO min-height aquí - el grid debe ocupar solo lo necesario */
+}
+
+/* ===== Responsive Design ===== */
+
+/* Tablet */
+@media (max-width: 1200px) {
+  .albumGrid__grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .albumGrid__title {
+    font-size: 22px;
+  }
+}
+
+/* Mobile - Horizontal scroll carousel */
+@media (max-width: 768px) {
+  .albumGrid {
+    margin-bottom: 28px;
+  }
+
+  .albumGrid__header {
+    padding: 0 16px;
+    margin-bottom: 12px;
+  }
+
+  .albumGrid__title {
+    font-size: 20px;
+  }
+
+  .albumGrid__grid {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 12px;
+    padding: 0 16px;
+    padding-bottom: 8px; /* Space for potential scrollbar */
+
+    /* Hide scrollbar but keep functionality */
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .albumGrid__grid::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  /* Fixed width for carousel items */
+  .albumGrid__grid > * {
+    flex-shrink: 0;
+    width: 140px;
+    scroll-snap-align: start;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .albumGrid__header {
+    padding: 0 12px;
+  }
+
+  .albumGrid__title {
+    font-size: 18px;
+  }
+
+  .albumGrid__grid {
+    gap: 10px;
+    padding: 0 12px;
+    padding-bottom: 6px;
+  }
+
+  .albumGrid__grid > * {
+    width: 130px;
+  }
+
+  /* Keep grid layout on mobile when modifier is applied */
+  .albumGrid__grid--mobileGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
+
+  .albumGrid__grid--mobileGrid > * {
+    width: auto;
+    flex-shrink: unset;
+    scroll-snap-align: unset;
+  }
+}
+
+/* Keep grid layout on mobile (768px) when modifier is applied */
+@media (max-width: 768px) {
+  .albumGrid__grid--mobileGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding-bottom: 0;
+  }
+
+  .albumGrid__grid--mobileGrid > * {
+    width: auto;
+    flex-shrink: unset;
+    scroll-snap-align: unset;
+  }
+}

@@ -1,0 +1,552 @@
+/* LibraryPanel Component Styles */
+
+.panel {
+  background: var(--white-03);
+  border-radius: 16px;
+  padding: 32px;
+  border: 1px solid var(--white-08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.panel:hover {
+  background: var(--white-05);
+  border-color: var(--white-12);
+}
+
+.loading {
+  text-align: center;
+  color: var(--color-text-secondary, #b8bcc8);
+  padding: 40px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.headerLeft {
+  flex: 1;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+  margin: 0 0 8px 0;
+}
+
+.description {
+  font-size: 14px;
+  color: var(--color-text-secondary, #b8bcc8);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Path Card */
+.pathCard {
+  background: var(--white-03);
+  border: 1px solid var(--white-08);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pathHeader {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pathIcon {
+  color: var(--color-primary, #6366f1);
+  flex-shrink: 0;
+}
+
+.pathInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pathLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary, #b8bcc8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pathValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary, #ffffff);
+  font-family: monospace;
+}
+
+.pathStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #22c55e;
+  font-size: 13px;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.pathStatusError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-error);
+  font-size: 13px;
+  background: var(--error-10);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.changeButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: rgba(198, 64, 29, 0.12);
+  border: 1px solid rgba(198, 64, 29, 0.35);
+  border-radius: 10px;
+  color: #e05a30;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.changeButton:hover {
+  background: rgba(198, 64, 29, 0.2);
+  border-color: rgba(198, 64, 29, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Messages */
+.errorMessage,
+.successMessage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.errorMessage {
+  background: var(--error-10);
+  color: var(--color-error);
+  border: 1px solid var(--error-20);
+}
+
+.successMessage {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+/* Browser */
+.browser {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--white-08);
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 16px;
+  box-shadow: 0 8px 32px var(--black-30);
+}
+
+.browserHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.browserTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary, #ffffff);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.browserClose {
+  background: var(--white-05);
+  border: 1px solid var(--white-10);
+  color: var(--color-text-secondary, #b8bcc8);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.browserClose:hover {
+  background: var(--white-10);
+  border-color: var(--white-15);
+  color: var(--color-text-primary, #ffffff);
+}
+
+.browserPath {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+  background: var(--white-04);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--white-08);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.browserPathLabel {
+  font-size: 13px;
+  color: var(--color-text-secondary, #b8bcc8);
+  font-weight: 500;
+}
+
+.browserPathValue {
+  font-size: 13px;
+  color: var(--color-secondary-400, #22d3ee);
+  background: rgba(0, 0, 0, 0.25);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}
+
+.browserNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--white-05);
+  border: 1px solid var(--white-08);
+  color: var(--color-text-secondary, #b8bcc8);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navButton:hover:not(:disabled) {
+  background: var(--white-10);
+  border-color: var(--white-12);
+  color: var(--color-text-primary, #ffffff);
+}
+
+.navButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.navButtonActive {
+  background: var(--color-primary, #ed6842);
+  border-color: var(--color-primary, #ed6842);
+  color: white;
+}
+
+/* Directory List */
+.directoryList {
+  max-height: 320px;
+  overflow-y: auto;
+  border: 1px solid var(--white-06);
+  border-radius: 12px;
+  background: var(--black-15);
+}
+
+.directoryList::-webkit-scrollbar {
+  width: 6px;
+}
+
+.directoryList::-webkit-scrollbar-track {
+  background: var(--white-02);
+}
+
+.directoryList::-webkit-scrollbar-thumb {
+  background: var(--white-10);
+  border-radius: 3px;
+}
+
+.directoryList::-webkit-scrollbar-thumb:hover {
+  background: var(--white-15);
+}
+
+.browserLoading,
+.browserEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px;
+  color: var(--color-text-secondary, #b8bcc8);
+  font-size: 14px;
+}
+
+.browserLoading svg {
+  color: var(--color-secondary-400, #22d3ee);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.directoryItem {
+  display: flex;
+  align-items: center;
+  margin: 4px 8px;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.directoryItem:hover {
+  background: var(--white-03);
+}
+
+.directoryItemDisabled {
+  opacity: 0.5;
+}
+
+.directoryButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--white-02);
+  border: 1px solid var(--white-04);
+  border-radius: 10px;
+  color: var(--color-text-primary, #ffffff);
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.directoryButton:hover:not(:disabled) {
+  background: var(--white-08);
+  border-color: var(--white-10);
+  transform: translateX(4px);
+}
+
+.directoryButton:disabled {
+  cursor: not-allowed;
+}
+
+.directoryButton svg {
+  color: var(--color-secondary-400, #22d3ee);
+  flex-shrink: 0;
+}
+
+.directoryName {
+  flex: 1;
+}
+
+.musicIcon {
+  color: var(--color-primary, #ed6842);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.chevron {
+  color: var(--color-text-tertiary, #64748b);
+}
+
+.selectButton {
+  padding: 8px 16px;
+  margin-right: 8px;
+  background: rgba(198, 64, 29, 0.1);
+  border: 1px solid rgba(198, 64, 29, 0.3);
+  color: #e05a30;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.selectButton:hover:not(:disabled) {
+  background: rgba(198, 64, 29, 0.2);
+  border-color: rgba(198, 64, 29, 0.5);
+}
+
+.selectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Browser Actions */
+.browserActions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--white-08);
+}
+
+.selectCurrentButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, #c6401d 0%, #a33518 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(198, 64, 29, 0.3);
+}
+
+.selectCurrentButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d4481f 0%, #b83a1a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(198, 64, 29, 0.4);
+}
+
+.selectCurrentButton:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(198, 64, 29, 0.3);
+}
+
+.selectCurrentButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .panel {
+    padding: 20px;
+  }
+
+  .pathCard {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pathHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .changeButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ===== Light Theme Styles ===== */
+:root[data-theme="light"] .panel {
+  background: rgba(31, 41, 55, 0.04);
+  border-color: rgba(31, 41, 55, 0.1);
+}
+
+:root[data-theme="light"] .panel:hover {
+  background: rgba(31, 41, 55, 0.06);
+  border-color: rgba(31, 41, 55, 0.15);
+}
+
+:root[data-theme="light"] .pathCard {
+  background: rgba(31, 41, 55, 0.04);
+  border-color: rgba(31, 41, 55, 0.1);
+}
+
+:root[data-theme="light"] .browser {
+  background: rgba(31, 41, 55, 0.06);
+  border-color: rgba(31, 41, 55, 0.1);
+}
+
+:root[data-theme="light"] .browserPath {
+  background: rgba(31, 41, 55, 0.04);
+  border-color: rgba(31, 41, 55, 0.1);
+}
+
+:root[data-theme="light"] .browserPathValue {
+  background: rgba(31, 41, 55, 0.08);
+  color: var(--color-secondary-600, #0891b2);
+}
+
+:root[data-theme="light"] .navButton {
+  background: rgba(31, 41, 55, 0.05);
+  border-color: rgba(31, 41, 55, 0.1);
+}
+
+:root[data-theme="light"] .navButton:hover:not(:disabled) {
+  background: rgba(31, 41, 55, 0.08);
+  border-color: rgba(31, 41, 55, 0.15);
+}
+
+:root[data-theme="light"] .directoryList {
+  background: rgba(31, 41, 55, 0.04);
+  border-color: rgba(31, 41, 55, 0.08);
+}
+
+:root[data-theme="light"] .directoryButton {
+  background: rgba(31, 41, 55, 0.03);
+  border-color: rgba(31, 41, 55, 0.06);
+}
+
+:root[data-theme="light"] .directoryButton:hover:not(:disabled) {
+  background: rgba(31, 41, 55, 0.08);
+  border-color: rgba(31, 41, 55, 0.12);
+}
+
+:root[data-theme="light"] .browserClose {
+  background: rgba(31, 41, 55, 0.05);
+  border-color: rgba(31, 41, 55, 0.1);
+}
+
+:root[data-theme="light"] .browserClose:hover {
+  background: rgba(31, 41, 55, 0.1);
+  border-color: rgba(31, 41, 55, 0.15);
+}
+
+:root[data-theme="light"] .browserActions {
+  border-top-color: rgba(31, 41, 55, 0.1);
+}

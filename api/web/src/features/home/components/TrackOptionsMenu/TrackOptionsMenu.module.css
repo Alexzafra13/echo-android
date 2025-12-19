@@ -1,0 +1,180 @@
+/* TrackOptionsMenu Component Styles - BEM Naming Convention */
+
+.trackOptionsMenu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Trigger Button (3 dots) */
+.trackOptionsMenu__trigger,
+:global(.trackOptionsMenu__trigger) {
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary, #6b7280);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  opacity: 0;
+}
+
+.trackOptionsMenu__trigger:hover,
+:global(.trackOptionsMenu__trigger):hover {
+  color: var(--text-primary, #ffffff);
+  background: var(--white-10);
+}
+
+/* Keep visible when menu is open */
+.trackOptionsMenu:has(.trackOptionsMenu__dropdown) .trackOptionsMenu__trigger,
+.trackOptionsMenu:has(.trackOptionsMenu__dropdown) :global(.trackOptionsMenu__trigger) {
+  opacity: 1;
+  color: var(--color-primary-500, #ed6842);
+  background: var(--primary-15);
+}
+
+/* Dropdown Menu - Portal rendered with fixed positioning */
+.trackOptionsMenu__dropdown {
+  min-width: 200px;
+  overflow-y: auto;
+  background: var(--bg-elevated, #1e293b);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px var(--black-40);
+  border: 1px solid var(--white-10);
+  padding: 4px;
+  /* Position, top, left/right, max-height set via inline styles */
+}
+
+/* Animation when dropdown opens below (default) */
+.trackOptionsMenu__dropdown[data-placement="bottom"] {
+  transform-origin: top right;
+  animation: scaleInFromTop 0.15s ease;
+}
+
+/* Animation when dropdown opens above */
+.trackOptionsMenu__dropdown[data-placement="top"] {
+  transform-origin: bottom right;
+  animation: scaleInFromBottom 0.15s ease;
+}
+
+@keyframes scaleInFromTop {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes scaleInFromBottom {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Closing animations */
+.trackOptionsMenu__dropdown--closing[data-placement="bottom"] {
+  animation: scaleOutToTop 0.15s ease forwards;
+}
+
+.trackOptionsMenu__dropdown--closing[data-placement="top"] {
+  animation: scaleOutToBottom 0.15s ease forwards;
+}
+
+@keyframes scaleOutToTop {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9) translateY(-4px);
+  }
+}
+
+@keyframes scaleOutToBottom {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9) translateY(4px);
+  }
+}
+
+/* Menu Option */
+.trackOptionsMenu__option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  text-align: left;
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+}
+
+.trackOptionsMenu__option:hover {
+  background: var(--white-05);
+}
+
+.trackOptionsMenu__option:active {
+  background: var(--white-08);
+}
+
+.trackOptionsMenu__option svg {
+  color: var(--text-tertiary, #6b7280);
+  flex-shrink: 0;
+}
+
+.trackOptionsMenu__option:hover svg {
+  color: var(--color-primary-500, #ed6842);
+}
+
+/* Danger Option (for destructive actions like remove) */
+.trackOptionsMenu__optionDanger {
+  color: #ef4444;
+}
+
+.trackOptionsMenu__optionDanger svg {
+  color: #ef4444;
+}
+
+.trackOptionsMenu__optionDanger:hover {
+  background: var(--error-10);
+}
+
+.trackOptionsMenu__optionDanger:hover svg {
+  color: #dc2626;
+}
+
+/* Separator */
+.trackOptionsMenu__separator {
+  height: 1px;
+  background: var(--white-10);
+  margin: 4px 0;
+}
+
+/* ===== Mobile: Always show trigger button ===== */
+@media (max-width: 768px) {
+  .trackOptionsMenu__trigger,
+  :global(.trackOptionsMenu__trigger) {
+    opacity: 1; /* Siempre visible en móvil - no hay hover en táctil */
+  }
+}
