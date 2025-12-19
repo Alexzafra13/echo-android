@@ -207,7 +207,7 @@ class SseClient @Inject constructor() {
 
                     if (isActive && shouldReconnect) {
                         onConnectionState(SseConnectionState.Connecting)
-                        this@callbackFlow.eventSource = createEventSource()
+                        eventSource = createEventSource()
                     }
                 }
             }
