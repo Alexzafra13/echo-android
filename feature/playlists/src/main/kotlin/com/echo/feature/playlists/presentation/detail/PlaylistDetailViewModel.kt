@@ -141,8 +141,8 @@ class PlaylistDetailViewModel @Inject constructor(
             id = trackId,
             title = title,
             artist = artistName ?: "Unknown Artist",
-            albumId = albumId,
-            albumTitle = albumTitle,
+            albumId = albumId ?: "",
+            albumTitle = albumTitle ?: "Unknown Album",
             duration = (duration ?: 0) * 1000L,
             trackNumber = trackNumber ?: order,
             coverUrl = coverUrl
