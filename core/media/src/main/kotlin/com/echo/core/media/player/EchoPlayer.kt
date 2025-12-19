@@ -1,10 +1,12 @@
 package com.echo.core.media.player
 
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import com.echo.core.media.model.PlayableTrack
@@ -24,6 +26,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@OptIn(UnstableApi::class)
 class EchoPlayer @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
