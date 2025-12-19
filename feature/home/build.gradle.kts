@@ -61,6 +61,9 @@ dependencies {
     // Serialization
     implementation(libs.kotlinx.serialization.json)
 
+    // Networking
+    implementation(libs.retrofit)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
