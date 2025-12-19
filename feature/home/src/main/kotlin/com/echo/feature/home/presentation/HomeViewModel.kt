@@ -48,14 +48,31 @@ class HomeViewModel @Inject constructor(
                 val topPlayedResult = albumsRepository.getTopPlayedAlbums(10)
                 val recentlyPlayedResult = albumsRepository.getRecentlyPlayedAlbums(10)
 
-                _state.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        featuredAlbum = featuredResult.getOrNull(),
-                        recentAlbums = recentResult.getOrDefault(emptyList()),
-                        topPlayedAlbums = topPlayedResult.getOrDefault(emptyList()),
-                        recentlyPlayedAlbums = recentlyPlayedResult.getOrDefault(emptyList())
-                    )
+                // Check if all requests failed
+                val allFailed = featuredResult.isFailure &&
+                    recentResult.isFailure &&
+                    topPlayedResult.isFailure &&
+                    recentlyPlayedResult.isFailure
+
+                if (allFailed) {
+                    val errorMessage = featuredResult.exceptionOrNull()?.localizedMessage
+                        ?: "Error loading data"
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = errorMessage
+                        )
+                    }
+                } else {
+                    _state.update { currentState ->
+                        currentState.copy(
+                            isLoading = false,
+                            featuredAlbum = featuredResult.getOrNull(),
+                            recentAlbums = recentResult.getOrDefault(emptyList()),
+                            topPlayedAlbums = topPlayedResult.getOrDefault(emptyList()),
+                            recentlyPlayedAlbums = recentlyPlayedResult.getOrDefault(emptyList())
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _state.update {
