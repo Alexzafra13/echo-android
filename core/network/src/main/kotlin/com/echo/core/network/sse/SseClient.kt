@@ -138,7 +138,7 @@ class SseClient @Inject constructor() {
         var reconnectAttempts = 0
         var currentDelay = initialDelayMs
         var shouldReconnect = true
-        var eventSource: EventSource? = null
+        var currentSource: EventSource? = null
 
         fun createEventSource(): EventSource {
             val requestBuilder = Request.Builder()
@@ -207,7 +207,7 @@ class SseClient @Inject constructor() {
 
                     if (isActive && shouldReconnect) {
                         onConnectionState(SseConnectionState.Connecting)
-                        eventSource = createEventSource()
+                        currentSource = createEventSource()
                     }
                 }
             }
@@ -217,12 +217,12 @@ class SseClient @Inject constructor() {
         }
 
         onConnectionState(SseConnectionState.Connecting)
-        eventSource = createEventSource()
+        currentSource = createEventSource()
 
         awaitClose {
             Log.d(TAG, "Closing SSE connection with reconnect")
             shouldReconnect = false
-            eventSource?.cancel()
+            currentSource?.cancel()
         }
     }
 
