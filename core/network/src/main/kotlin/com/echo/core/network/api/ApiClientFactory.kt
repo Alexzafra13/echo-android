@@ -2,6 +2,7 @@ package com.echo.core.network.api
 
 import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.core.network.interceptor.AuthInterceptor
+import com.echo.core.network.interceptor.ErrorInterceptor
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -11,12 +12,14 @@ import retrofit2.Retrofit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Singleton
 class ApiClientFactory @Inject constructor(
     private val sessionPreferences: SessionPreferences,
-    private val json: Json
+    private val json: Json,
+    @Named("isDebug") private val isDebug: Boolean
 ) {
     private val clients = ConcurrentHashMap<String, Retrofit>()
 
@@ -37,23 +40,30 @@ class ApiClientFactory @Inject constructor(
     }
 
     private fun createRetrofitClient(baseUrl: String): Retrofit {
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
         val authInterceptor = AuthInterceptor(sessionPreferences)
+        val errorInterceptor = ErrorInterceptor()
 
-        val okHttpClient = OkHttpClient.Builder()
+        val okHttpClientBuilder = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
-            .addInterceptor(loggingInterceptor)
+            .addInterceptor(errorInterceptor)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
-            .build()
+
+        // Only add logging interceptor in debug builds
+        if (isDebug) {
+            val loggingInterceptor = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+                // Redact sensitive headers even in debug
+                redactHeader("Authorization")
+                redactHeader("Cookie")
+            }
+            okHttpClientBuilder.addInterceptor(loggingInterceptor)
+        }
 
         return Retrofit.Builder()
             .baseUrl("$baseUrl/api/")
-            .client(okHttpClient)
+            .client(okHttpClientBuilder.build())
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()
     }

@@ -11,7 +11,10 @@ import androidx.navigation.navArgument
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.feature.albums.presentation.detail.AlbumDetailScreen
+import com.echo.feature.artists.presentation.detail.ArtistDetailScreen
+import com.echo.feature.auth.presentation.firstlogin.FirstLoginScreen
 import com.echo.feature.auth.presentation.login.LoginScreen
+import com.echo.feature.playlists.presentation.detail.PlaylistDetailScreen
 import com.echo.feature.home.presentation.HomeScreen
 import com.echo.feature.home.presentation.LibraryScreen
 import com.echo.feature.home.presentation.RadioScreen
@@ -124,9 +127,12 @@ fun EchoNavGraph(
 
         // First Login (change password)
         composable(EchoDestinations.FIRST_LOGIN) {
-            // TODO: Implement FirstLoginScreen
-            HomeScreen(
-                onNavigateToAlbum = {}
+            FirstLoginScreen(
+                onPasswordChanged = {
+                    navController.navigate(EchoDestinations.HOME) {
+                        popUpTo(EchoDestinations.FIRST_LOGIN) { inclusive = true }
+                    }
+                }
             )
         }
 
@@ -192,6 +198,40 @@ fun EchoNavGraph(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate("${EchoDestinations.ARTIST_DETAIL}/$artistId")
+                }
+            )
+        }
+
+        // Artist Detail
+        composable(
+            route = "${EchoDestinations.ARTIST_DETAIL}/{artistId}",
+            arguments = listOf(
+                navArgument("artistId") { type = NavType.StringType }
+            )
+        ) {
+            ArtistDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate("${EchoDestinations.ALBUM_DETAIL}/$albumId")
+                }
+            )
+        }
+
+        // Playlist Detail
+        composable(
+            route = "${EchoDestinations.PLAYLIST_DETAIL}/{playlistId}",
+            arguments = listOf(
+                navArgument("playlistId") { type = NavType.StringType }
+            )
+        ) {
+            PlaylistDetailScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate("${EchoDestinations.ALBUM_DETAIL}/$albumId")
                 }
             )
         }

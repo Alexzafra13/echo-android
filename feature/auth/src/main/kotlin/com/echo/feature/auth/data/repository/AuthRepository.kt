@@ -6,6 +6,7 @@ import com.echo.core.datastore.preferences.SessionData
 import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.core.network.api.ApiClientFactory
 import com.echo.feature.auth.data.api.AuthApi
+import com.echo.feature.auth.data.dto.ChangePasswordRequest
 import com.echo.feature.auth.data.dto.LoginRequest
 import com.echo.feature.auth.domain.model.LoginResult
 import com.echo.feature.auth.domain.model.User
@@ -89,4 +90,27 @@ class AuthRepository @Inject constructor(
     }
 
     fun getSavedCredentials(serverId: String) = sessionPreferences.getCredentials(serverId)
+
+    suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val server = serverPreferences.activeServer.first()
+                ?: return Result.failure(IllegalStateException("No active server"))
+
+            val api = apiClientFactory.getClient(server.url).create(AuthApi::class.java)
+            api.changePassword(ChangePasswordRequest(currentPassword, newPassword))
+
+            // Update session to clear mustChangePassword flag
+            sessionPreferences.updateMustChangePassword(false)
+
+            Result.success(Unit)
+        } catch (e: retrofit2.HttpException) {
+            when (e.code()) {
+                401 -> Result.failure(Exception("Contraseña actual incorrecta"))
+                400 -> Result.failure(Exception("La nueva contraseña no cumple los requisitos"))
+                else -> Result.failure(Exception("Error del servidor: ${e.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }
