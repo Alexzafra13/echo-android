@@ -1,6 +1,5 @@
 package com.echo.feature.playlists.data.api
 
-import com.echo.feature.playlists.data.dto.AddTrackToPlaylistDto
 import com.echo.feature.playlists.data.dto.CreatePlaylistDto
 import com.echo.feature.playlists.data.dto.PlaylistDto
 import com.echo.feature.playlists.data.dto.PlaylistTracksResponseDto
