@@ -85,6 +85,11 @@ class SessionPreferences @Inject constructor(
         saveSession(current.copy(streamToken = streamToken))
     }
 
+    fun updateMustChangePassword(mustChange: Boolean) {
+        val current = _session.value ?: return
+        saveSession(current.copy(mustChangePassword = mustChange))
+    }
+
     fun clearSession() {
         encryptedPrefs.edit()
             .remove(Keys.SESSION)

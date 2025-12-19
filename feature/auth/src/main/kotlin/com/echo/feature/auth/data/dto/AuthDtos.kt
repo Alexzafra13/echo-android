@@ -31,3 +31,9 @@ data class UserResponse(
     val mustChangePassword: Boolean = false,
     val createdAt: String? = null
 )
+
+@Serializable
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String
+)

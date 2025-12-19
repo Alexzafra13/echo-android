@@ -1,5 +1,6 @@
 package com.echo.feature.artists.data.api
 
+import com.echo.feature.artists.data.dto.ArtistAlbumDto
 import com.echo.feature.artists.data.dto.ArtistDto
 import com.echo.feature.artists.data.dto.ArtistsPageDto
 import retrofit2.http.GET
@@ -21,4 +22,7 @@ interface ArtistsApi {
 
     @GET("artists/{id}")
     suspend fun getArtist(@Path("id") artistId: String): ArtistDto
+
+    @GET("artists/{id}/albums")
+    suspend fun getArtistAlbums(@Path("id") artistId: String): List<ArtistAlbumDto>
 }
