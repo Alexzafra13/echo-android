@@ -39,7 +39,8 @@ class LoginViewModelTest {
         id = "server1",
         name = "Test Server",
         url = "https://echo.example.com",
-        lastConnected = null
+        addedAt = System.currentTimeMillis(),
+        lastConnectedAt = null
     )
 
     private val testUser = User(
