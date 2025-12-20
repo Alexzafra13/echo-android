@@ -3,10 +3,12 @@ package com.echo.core.media.service
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.echo.core.media.player.EchoPlayer
@@ -18,6 +20,7 @@ import javax.inject.Inject
  * Handles media session and system notifications automatically.
  */
 @AndroidEntryPoint
+@OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
 
     @Inject
