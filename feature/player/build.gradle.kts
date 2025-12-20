@@ -44,4 +44,7 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.bundles.media3)
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
 }
