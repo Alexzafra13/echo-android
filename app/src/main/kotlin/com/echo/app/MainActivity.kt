@@ -155,7 +155,8 @@ class MainActivity : ComponentActivity() {
                             },
                             onNextClick = {
                                 echoPlayer.seekToNext()
-                            }
+                            },
+                            modifier = if (!isMainScreen) Modifier.navigationBarsPadding() else Modifier
                         )
 
                         // Bottom Navigation
