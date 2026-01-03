@@ -33,7 +33,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -68,10 +68,17 @@ fun AlbumDetailScreen(
     val state by viewModel.state.collectAsState()
     val lazyListState = rememberLazyListState()
 
-    // Check if user has scrolled past the header
+    // Check if user has scrolled (for glass effect)
     val hasScrolled by remember {
         derivedStateOf {
-            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 100
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 50
+        }
+    }
+
+    // Check if title should be shown (when original title is covered)
+    val showTitle by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 280
         }
     }
 
@@ -83,9 +90,9 @@ fun AlbumDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
-                    if (hasScrolled) {
+                    if (showTitle) {
                         Text(
                             text = state.album?.title ?: "",
                             maxLines = 1,
