@@ -192,7 +192,7 @@ private fun PlaylistHeader(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(340.dp)
+            .height(380.dp)
     ) {
         // Blurred background
         if (firstTrackCover != null) {
@@ -315,22 +315,26 @@ private fun PlaylistHeader(
 
             // Action buttons
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 // Shuffle button
-                IconButton(
-                    onClick = onShuffleClick,
+                Box(
                     modifier = Modifier
                         .size(48.dp)
                         .background(
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.surfaceVariant,
                             CircleShape
                         )
+                        .clip(CircleShape)
+                        .clickable(onClick = onShuffleClick),
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Aleatorio",
-                        tint = MaterialTheme.colorScheme.onSurface
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
@@ -345,6 +349,7 @@ private fun PlaylistHeader(
                         )
                         .size(56.dp)
                         .background(EchoCoral, CircleShape)
+                        .clip(CircleShape)
                         .clickable(onClick = onPlayClick),
                     contentAlignment = Alignment.Center
                 ) {
