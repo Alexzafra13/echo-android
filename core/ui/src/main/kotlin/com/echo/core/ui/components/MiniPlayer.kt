@@ -84,7 +84,7 @@ fun MiniPlayer(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onPlayerClick)
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Album cover
@@ -92,8 +92,8 @@ fun MiniPlayer(
                     model = state.coverUrl,
                     contentDescription = state.trackTitle,
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(6.dp)),
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
 
@@ -128,8 +128,9 @@ fun MiniPlayer(
                     // Play/Pause button
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(48.dp)
                             .background(EchoCoral, CircleShape)
+                            .clip(CircleShape)
                             .clickable(onClick = onPlayPauseClick),
                         contentAlignment = Alignment.Center
                     ) {
@@ -137,14 +138,20 @@ fun MiniPlayer(
                             imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                             contentDescription = if (state.isPlaying) "Pausar" else "Reproducir",
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     // Next button
-                    IconButton(onClick = onNextClick) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .clickable(onClick = onNextClick),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Siguiente",
