@@ -95,6 +95,7 @@ fun AlbumDetailScreen(
                     if (showTitle) {
                         Text(
                             text = state.album?.title ?: "",
+                            style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -319,53 +320,71 @@ private fun AlbumHeader(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Action buttons
+            // Action buttons (Spotify style)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Shuffle button
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(
-                            MaterialTheme.colorScheme.surfaceVariant,
-                            CircleShape
-                        )
-                        .clip(CircleShape)
-                        .clickable(onClick = onShuffleClick),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Shuffle,
-                        contentDescription = "Aleatorio",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
                 // Play button
-                Box(
+                Row(
                     modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
                         .shadow(
-                            elevation = 8.dp,
-                            shape = CircleShape,
-                            ambientColor = EchoCoral.copy(alpha = 0.4f),
-                            spotColor = EchoCoral.copy(alpha = 0.4f)
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            ambientColor = EchoCoral.copy(alpha = 0.3f),
+                            spotColor = EchoCoral.copy(alpha = 0.3f)
                         )
-                        .size(56.dp)
-                        .background(EchoCoral, CircleShape)
-                        .clip(CircleShape)
+                        .background(EchoCoral, RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(24.dp))
                         .clickable(onClick = onPlayClick),
-                    contentAlignment = Alignment.Center
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Reproducir",
+                        contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Reproducir",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Shuffle button
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(24.dp)
+                        )
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable(onClick = onShuffleClick),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Aleatorio",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
