@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,7 +37,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -62,11 +66,33 @@ fun AlbumDetailScreen(
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val lazyListState = rememberLazyListState()
+
+    // Check if user has scrolled past the header
+    val hasScrolled by remember {
+        derivedStateOf {
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 100
+        }
+    }
+
+    val topBarColor = if (hasScrolled) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+    } else {
+        Color.Transparent
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { },
+                title = {
+                    if (hasScrolled) {
+                        Text(
+                            text = state.album?.title ?: "",
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -84,7 +110,7 @@ fun AlbumDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+                    containerColor = topBarColor
                 )
             )
         }
@@ -117,7 +143,7 @@ fun AlbumDetailScreen(
                     tracks = state.tracks,
                     currentPlayingTrackId = state.currentPlayingTrackId,
                     isPlaying = state.isPlaying,
-                    paddingValues = paddingValues,
+                    lazyListState = lazyListState,
                     onPlayClick = { viewModel.playAlbum() },
                     onShuffleClick = { viewModel.shuffleAlbum() },
                     onTrackClick = { viewModel.playTrack(it) },
@@ -134,7 +160,7 @@ private fun AlbumDetailContent(
     tracks: List<Track>,
     currentPlayingTrackId: String?,
     isPlaying: Boolean,
-    paddingValues: PaddingValues,
+    lazyListState: LazyListState,
     onPlayClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onTrackClick: (Track) -> Unit,
@@ -142,6 +168,7 @@ private fun AlbumDetailContent(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        state = lazyListState,
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         // Header with album cover
