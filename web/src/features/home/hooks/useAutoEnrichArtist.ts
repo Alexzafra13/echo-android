@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '@shared/services/api';
+import { logger } from '@shared/utils/logger';
 
 /**
  * Hook to automatically enrich an artist if they don't have external metadata
@@ -36,8 +37,8 @@ export function useAutoEnrichArtist(
     },
     onError: (error: any) => {
       // Only log unexpected errors (not 404/400 which are expected when enrichment is unavailable)
-      if (error.response?.status !== 404 && error.response?.status !== 400) {
-        console.error('[useAutoEnrichArtist] Unexpected error:', error);
+      if (import.meta.env.DEV && error.response?.status !== 404 && error.response?.status !== 400) {
+        logger.error('[useAutoEnrichArtist] Unexpected error:', error);
       }
     },
   });

@@ -1,1 +1,0 @@
-export { usePublicProfile } from './usePublicProfile';

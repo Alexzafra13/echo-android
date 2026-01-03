@@ -1,1 +1,0 @@
-export { MetadataConflictsPanel } from './MetadataConflictsPanel';

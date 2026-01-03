@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { HardDrive, Trash2, AlertCircle, CheckCircle, RefreshCw, FolderOpen, Lock } from 'lucide-react';
-import { Button, CollapsibleInfo, InlineNotification } from '@shared/components/ui';
+import { Button, CollapsibleInfo, InlineNotification, ConfirmDialog } from '@shared/components/ui';
 import type { NotificationType } from '@shared/components/ui';
 import { apiClient } from '@shared/services/api';
 import { formatBytes } from '@shared/utils/format';
-import { ConfirmDialog } from '../UsersPanel/ConfirmDialog';
+import { MissingFilesPanel } from '../MissingFilesPanel';
+import { logger } from '@shared/utils/logger';
 import styles from './MaintenanceTab.module.css';
 
 interface StorageStats {
@@ -77,7 +78,7 @@ export function MaintenanceTab() {
       setStats(mappedStats);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error loading storage stats:', error);
+        logger.error('Error loading storage stats:', error);
       }
     } finally {
       setIsLoadingStats(false);
@@ -90,7 +91,7 @@ export function MaintenanceTab() {
       setPaths(response.data);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error loading storage paths:', error);
+        logger.error('Error loading storage paths:', error);
       }
     }
   };
@@ -113,7 +114,7 @@ export function MaintenanceTab() {
       await loadStats();
     } catch (err: any) {
       if (import.meta.env.DEV) {
-        console.error('Error running cleanup:', err);
+        logger.error('Error running cleanup:', err);
       }
       setNotification({ type: 'error', message: err.response?.data?.message || 'Error al ejecutar limpieza' });
     } finally {
@@ -133,7 +134,7 @@ export function MaintenanceTab() {
       setNotification({ type: 'success', message: 'Caché limpiado correctamente' });
     } catch (err: any) {
       if (import.meta.env.DEV) {
-        console.error('Error clearing cache:', err);
+        logger.error('Error clearing cache:', err);
       }
       setNotification({ type: 'error', message: err.response?.data?.message || 'Error al limpiar caché' });
     }
@@ -149,7 +150,7 @@ export function MaintenanceTab() {
       await loadStats();
     } catch (error: any) {
       if (import.meta.env.DEV) {
-        console.error('Error populating sort names:', error);
+        logger.error('Error populating sort names:', error);
       }
       setPopulateError(error.response?.data?.message || 'Error al generar nombres de ordenamiento');
     } finally {
@@ -455,6 +456,9 @@ export function MaintenanceTab() {
           />
         )}
       </div>
+
+      {/* Missing Files Panel */}
+      <MissingFilesPanel />
 
       {/* Info Box */}
       <CollapsibleInfo title="Sobre la limpieza">

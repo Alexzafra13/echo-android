@@ -8,7 +8,7 @@
 
 .cover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 24px var(--black-25);
 }
 
 .small {
@@ -24,6 +24,12 @@
 .large {
   width: 240px;
   height: 240px;
+}
+
+/* Responsive size - fills container width with square aspect ratio */
+.responsive {
+  width: 100%;
+  aspect-ratio: 1;
 }
 
 .colorCover {
@@ -111,5 +117,5 @@
   width: 85%;
   height: 85%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 4px var(--black-30));
 }

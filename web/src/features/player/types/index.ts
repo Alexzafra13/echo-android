@@ -17,10 +17,15 @@ export interface NormalizationSettings {
   preventClipping: boolean; // Apple style: don't boost beyond peak headroom
 }
 
+export interface AutoplaySettings {
+  enabled: boolean;
+}
+
 export interface PlayerState {
   // Track playback
   currentTrack: Track | null;
   queue: Track[];
+  currentIndex: number;
   isPlaying: boolean;
   volume: number;
   currentTime: number;
@@ -40,6 +45,11 @@ export interface PlayerState {
   isRadioMode: boolean;
   radioMetadata: RadioMetadata | null;
   radioSignalStatus: 'good' | 'weak' | 'error' | null; // Radio signal quality
+
+  // Autoplay (continue with similar artists when queue ends)
+  autoplay: AutoplaySettings;
+  isAutoplayActive: boolean; // Currently playing from autoplay
+  autoplaySourceArtist: string | null; // Artist name that triggered autoplay
 }
 
 export interface PlayerContextValue extends PlayerState {
@@ -65,6 +75,7 @@ export interface PlayerContextValue extends PlayerState {
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
   toggleShuffle: () => void;
+  setShuffle: (enabled: boolean) => void;
   toggleRepeat: () => void;
 
   // Crossfade controls
@@ -75,4 +86,7 @@ export interface PlayerContextValue extends PlayerState {
   setNormalizationEnabled: (enabled: boolean) => void;
   setNormalizationTargetLufs: (target: -14 | -16) => void;
   setNormalizationPreventClipping: (prevent: boolean) => void;
+
+  // Autoplay controls
+  setAutoplayEnabled: (enabled: boolean) => void;
 }

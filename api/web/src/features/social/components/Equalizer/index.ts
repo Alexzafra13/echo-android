@@ -1,1 +1,0 @@
-export { Equalizer } from './Equalizer';

@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { Waves, RefreshCw, Sparkles, Search, X } from 'lucide-react';
+import { Waves, RefreshCw, Sparkles, Search, X, Calendar } from 'lucide-react';
 import { Sidebar } from '@features/home/components';
 import { Header } from '@shared/components/layout/Header';
 import { Button } from '@shared/components/ui';
+import { ActionCard } from '@shared/components/ActionCard';
 import { PlaylistCover } from '../../components/PlaylistCover';
 import { getAutoPlaylists, refreshWaveMix, type AutoPlaylist } from '@shared/services/recommendations.service';
 import { useAuthStore } from '@shared/store';
 import { useGridDimensions } from '@features/home/hooks';
 import { logger } from '@shared/utils/logger';
+import { safeSessionStorage } from '@shared/utils/safeSessionStorage';
 import styles from './WaveMixPage.module.css';
 
 /**
@@ -24,10 +26,12 @@ export function WaveMixPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Calculate items for 2 rows based on screen size (same as HomePage)
-  const { itemsPerPage: neededItems } = useGridDimensions({
+  // Use at least 10 items for mobile carousel scroll
+  const { itemsPerPage: gridItems } = useGridDimensions({
     maxRows: 2,
     headerHeight: 450,
   });
+  const neededItems = Math.max(gridItems, 10);
 
   const loadPlaylists = async () => {
     setIsLoading(true);
@@ -51,8 +55,8 @@ export function WaveMixPage() {
   const handlePlaylistClick = (playlist: AutoPlaylist) => {
     // Navigate to individual playlist page with state
     // Note: wouter doesn't support state in navigation, so we'll store in sessionStorage
-    sessionStorage.setItem('currentPlaylist', JSON.stringify(playlist));
-    sessionStorage.setItem('playlistReturnPath', '/wave-mix');
+    safeSessionStorage.setItem('currentPlaylist', JSON.stringify(playlist));
+    safeSessionStorage.setItem('playlistReturnPath', '/wave-mix');
     setLocation(`/wave-mix/${playlist.id}`);
   };
 
@@ -84,6 +88,26 @@ export function WaveMixPage() {
   const dailyPlaylists = filteredPlaylists.filter(p => p.type === 'wave-mix');
   const artistPlaylists = filteredPlaylists.filter(p => p.type === 'artist');
   const genrePlaylists = filteredPlaylists.filter(p => p.type === 'genre');
+
+  // Helper to get a random album cover from playlist tracks
+  const getPlaylistCoverUrl = (playlist: AutoPlaylist): string | undefined => {
+    if (playlist.coverImageUrl) return playlist.coverImageUrl;
+
+    // Get album IDs from tracks
+    const albumIds = new Set<string>();
+    for (const scoredTrack of playlist.tracks || []) {
+      if (scoredTrack.track?.albumId) {
+        albumIds.add(scoredTrack.track.albumId);
+      }
+    }
+
+    const albumIdArray = Array.from(albumIds);
+    if (albumIdArray.length === 0) return undefined;
+
+    // Pick a random album cover
+    const randomAlbumId = albumIdArray[Math.floor(Math.random() * albumIdArray.length)];
+    return `/api/albums/${randomAlbumId}/cover`;
+  };
 
   return (
     <div className={styles.waveMixPage}>
@@ -177,33 +201,16 @@ export function WaveMixPage() {
               {dailyPlaylists.length > 0 && (
                 <div className={styles.waveMixPage__section}>
                   <h2 className={styles.waveMixPage__sectionTitle}>Recomendaciones Diarias</h2>
-                  <div className={styles.waveMixPage__grid}>
+                  <div className={styles.waveMixPage__dailyCards}>
                     {dailyPlaylists.map((playlist) => (
-                      <div
+                      <ActionCard
                         key={playlist.id}
-                        className={styles.playlistCard}
+                        icon={<Calendar size={22} />}
+                        title={playlist.name}
                         onClick={() => handlePlaylistClick(playlist)}
-                      >
-                        <PlaylistCover
-                          type={playlist.type}
-                          name={playlist.name}
-                          coverColor={playlist.coverColor}
-                          coverImageUrl={playlist.coverImageUrl}
-                          artistName={playlist.metadata.artistName}
-                          size="medium"
-                        />
-                        <div className={styles.playlistCard__info}>
-                          <h3 className={styles.playlistCard__name}>{playlist.name}</h3>
-                          <p className={styles.playlistCard__description}>
-                            {playlist.description}
-                          </p>
-                          <div className={styles.playlistCard__meta}>
-                            <span>{playlist.metadata.totalTracks} canciones</span>
-                            <span className={styles.separator}>•</span>
-                            <span>Actualizado hoy</span>
-                          </div>
-                        </div>
-                      </div>
+                        customGradient={['#2d1f3d', '#1a1a2e']}
+                        backgroundCoverUrl={getPlaylistCoverUrl(playlist)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -234,7 +241,7 @@ export function WaveMixPage() {
                           coverColor={playlist.coverColor}
                           coverImageUrl={playlist.coverImageUrl}
                           artistName={playlist.metadata.artistName}
-                          size="medium"
+                          size="responsive"
                         />
                         <div className={styles.playlistCard__info}>
                           <h3 className={styles.playlistCard__name}>{playlist.name}</h3>
@@ -275,7 +282,7 @@ export function WaveMixPage() {
                           name={playlist.name}
                           coverColor={playlist.coverColor}
                           coverImageUrl={playlist.coverImageUrl}
-                          size="medium"
+                          size="responsive"
                         />
                         <div className={styles.playlistCard__info}>
                           <h3 className={styles.playlistCard__name}>{playlist.name}</h3>

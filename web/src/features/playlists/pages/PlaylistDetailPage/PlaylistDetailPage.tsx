@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'wouter';
-import { Play, Shuffle, Music, Edit2, MoreHorizontal, Globe, Lock } from 'lucide-react';
+import { useParams, Link, useLocation } from 'wouter';
+import { Play, Shuffle, Music, Globe, Lock } from 'lucide-react';
 import { Header } from '@shared/components/layout/Header';
 import { Sidebar } from '@features/home/components';
 import { TrackList } from '@features/home/components';
-import { usePlaylist, usePlaylistTracks, useUpdatePlaylist, useRemoveTrackFromPlaylist } from '../../hooks/usePlaylists';
+import { usePlaylist, usePlaylistTracks, useUpdatePlaylist, useRemoveTrackFromPlaylist, useDeletePlaylist, useReorderPlaylistTracks } from '../../hooks/usePlaylists';
 import { usePlayer, Track } from '@features/player';
 import { Button } from '@shared/components/ui';
-import { PlaylistCoverMosaic, EditPlaylistModal } from '../../components';
-import { UpdatePlaylistDto } from '../../types';
+import { PlaylistCoverMosaic, PlaylistOptionsMenu, EditPlaylistModal, DeletePlaylistModal } from '../../components';
+import { UpdatePlaylistDto, PlaylistTrack } from '../../types';
+import type { Track as SharedTrack } from '@shared/types/track.types';
 import { extractDominantColor } from '@shared/utils/colorExtractor';
 import { formatDuration } from '@shared/utils/format';
 import { getUserAvatarUrl, handleAvatarError } from '@shared/utils/avatar.utils';
 import { useAuthStore } from '@shared/store';
+import { logger } from '@shared/utils/logger';
 import styles from './PlaylistDetailPage.module.css';
 
 /**
@@ -21,16 +23,20 @@ import styles from './PlaylistDetailPage.module.css';
  */
 export default function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { playQueue, currentTrack, isShuffle, toggleShuffle } = usePlayer();
+  const [, setLocation] = useLocation();
+  const { playQueue, currentTrack, setShuffle } = usePlayer();
   const avatarTimestamp = useAuthStore((state) => state.avatarTimestamp);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [dominantColor, setDominantColor] = useState<string>('10, 14, 39'); // Default dark blue
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: playlist, isLoading: loadingPlaylist, error: playlistError } = usePlaylist(id!);
   const { data: playlistTracks, isLoading: loadingTracks } = usePlaylistTracks(id!);
   const updatePlaylistMutation = useUpdatePlaylist();
+  const deletePlaylistMutation = useDeletePlaylist();
   const removeTrackMutation = useRemoveTrackFromPlaylist();
+  const reorderTracksMutation = useReorderPlaylistTracks();
 
   // Extract dominant color from first album cover in playlist
   useEffect(() => {
@@ -39,14 +45,14 @@ export default function PlaylistDetailPage() {
 
     if (firstAlbumId) {
       const coverUrl = `/api/albums/${firstAlbumId}/cover`;
-      extractDominantColor(coverUrl).then((color) => {
-        setDominantColor(color);
-      });
+      extractDominantColor(coverUrl)
+        .then((color) => setDominantColor(color))
+        .catch(() => {/* Color extraction failed, use default */});
     }
   }, [playlistTracks]);
 
   // Convert API tracks to Player tracks
-  const convertToPlayerTracks = (apiTracks: any[]): Track[] => {
+  const convertToPlayerTracks = (apiTracks: PlaylistTrack[]): Track[] => {
     return apiTracks.map(track => ({
       id: track.id,
       title: track.title,
@@ -65,6 +71,8 @@ export default function PlaylistDetailPage() {
   const handlePlayAll = () => {
     const tracks = playlistTracks?.tracks || [];
     if (tracks.length === 0) return;
+    // Disable shuffle mode for ordered playback
+    setShuffle(false);
     const playerTracks = convertToPlayerTracks(tracks);
     playQueue(playerTracks, 0);
   };
@@ -73,17 +81,18 @@ export default function PlaylistDetailPage() {
     const tracks = playlistTracks?.tracks || [];
     if (tracks.length === 0) return;
     const playerTracks = convertToPlayerTracks(tracks);
-    // Activate shuffle mode if not already active
-    if (!isShuffle) {
-      toggleShuffle();
+    // Enable shuffle mode
+    setShuffle(true);
+    // Shuffle the tracks array using Fisher-Yates algorithm
+    const shuffledTracks = [...playerTracks];
+    for (let i = shuffledTracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
     }
-    // Start from a random track - the player's shuffle logic will handle
-    // not repeating tracks until all have been played
-    const randomStartIndex = Math.floor(Math.random() * playerTracks.length);
-    playQueue(playerTracks, randomStartIndex);
+    playQueue(shuffledTracks, 0);
   };
 
-  const handleTrackPlay = (track: any) => {
+  const handleTrackPlay = (track: SharedTrack) => {
     const tracks = playlistTracks?.tracks || [];
     if (tracks.length === 0) return;
     const playerTracks = convertToPlayerTracks(tracks);
@@ -95,14 +104,80 @@ export default function PlaylistDetailPage() {
     await updatePlaylistMutation.mutateAsync({ id, dto: data });
   };
 
-  const handleRemoveTrack = async (track: any) => {
+  const handleRemoveTrack = async (track: SharedTrack) => {
     if (!id) return;
     try {
       await removeTrackMutation.mutateAsync({ playlistId: id, trackId: track.id });
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error removing track from playlist:', error);
+        logger.error('Error removing track from playlist:', error);
       }
+    }
+  };
+
+  const handleDeletePlaylist = async () => {
+    if (!id) return;
+    try {
+      await deletePlaylistMutation.mutateAsync(id);
+      setShowDeleteModal(false);
+      setLocation('/playlists');
+    } catch (error) {
+      logger.error('Error deleting playlist:', error);
+    }
+  };
+
+  const handleDownloadPlaylist = () => {
+    // TODO: Implement playlist download
+    logger.debug('Download playlist - to be implemented');
+  };
+
+  const handleToggleVisibility = async () => {
+    if (!playlist || !id) return;
+    try {
+      await updatePlaylistMutation.mutateAsync({
+        id,
+        dto: { public: !playlist.public }
+      });
+    } catch (error) {
+      logger.error('Error toggling playlist visibility:', error);
+    }
+  };
+
+  const handleMoveTrackUp = async (_track: SharedTrack, index: number) => {
+    if (!id || index === 0) return;
+    const currentTracks = playlistTracks?.tracks || [];
+    if (currentTracks.length < 2) return;
+
+    // Create new order: swap with previous track
+    const newOrder = currentTracks.map(t => t.id);
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+
+    try {
+      await reorderTracksMutation.mutateAsync({
+        playlistId: id,
+        dto: { trackOrders: newOrder.map((trackId, idx) => ({ trackId, order: idx })) },
+      });
+    } catch (error) {
+      logger.error('Error reordering tracks:', error);
+    }
+  };
+
+  const handleMoveTrackDown = async (_track: SharedTrack, index: number) => {
+    if (!id) return;
+    const currentTracks = playlistTracks?.tracks || [];
+    if (index >= currentTracks.length - 1) return;
+
+    // Create new order: swap with next track
+    const newOrder = currentTracks.map(t => t.id);
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+
+    try {
+      await reorderTracksMutation.mutateAsync({
+        playlistId: id,
+        dto: { trackOrders: newOrder.map((trackId, idx) => ({ trackId, order: idx })) },
+      });
+    } catch (error) {
+      logger.error('Error reordering tracks:', error);
     }
   };
 
@@ -231,20 +306,13 @@ export default function PlaylistDetailPage() {
                 >
                   Aleatorio
                 </Button>
-                <button
-                  className={styles.playlistDetailPage__heroActionButton}
-                  aria-label="Edit playlist"
-                  title="Editar playlist"
-                  onClick={() => setShowEditModal(true)}
-                >
-                  <Edit2 size={20} />
-                </button>
-                <button
-                  className={styles.playlistDetailPage__heroMoreButton}
-                  aria-label="More options"
-                >
-                  <MoreHorizontal size={24} />
-                </button>
+                <PlaylistOptionsMenu
+                  onEdit={() => setShowEditModal(true)}
+                  onToggleVisibility={handleToggleVisibility}
+                  onDownload={handleDownloadPlaylist}
+                  onDelete={() => setShowDeleteModal(true)}
+                  isPublic={playlist.public}
+                />
               </div>
             </div>
           </div>
@@ -261,6 +329,8 @@ export default function PlaylistDetailPage() {
                 onTrackPlay={handleTrackPlay}
                 currentTrackId={currentTrack?.id}
                 onRemoveFromPlaylist={handleRemoveTrack}
+                onMoveUp={handleMoveTrackUp}
+                onMoveDown={handleMoveTrackDown}
               />
             ) : (
               <div className={styles.playlistDetailPage__emptyTracks}>
@@ -301,6 +371,16 @@ export default function PlaylistDetailPage() {
           onClose={() => setShowEditModal(false)}
           onSubmit={handleUpdatePlaylist}
           isLoading={updatePlaylistMutation.isPending}
+        />
+      )}
+
+      {/* Delete Playlist Modal */}
+      {showDeleteModal && playlist && (
+        <DeletePlaylistModal
+          playlistName={playlist.name}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeletePlaylist}
+          isLoading={deletePlaylistMutation.isPending}
         />
       )}
     </div>

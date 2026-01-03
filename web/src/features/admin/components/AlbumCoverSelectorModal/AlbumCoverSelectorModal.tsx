@@ -5,6 +5,8 @@ import { Button } from '@shared/components/ui';
 import { useSearchAlbumCovers, useApplyAlbumCover } from '../../hooks/useAlbumCovers';
 import { CoverOption } from '../../api/album-covers.api';
 import { AlbumCoverUploadTab } from './AlbumCoverUploadTab';
+import { metadataService } from '@features/admin/metadata/services/metadataService';
+import { logger } from '@shared/utils/logger';
 import styles from './AlbumCoverSelectorModal.module.css';
 
 interface AlbumCoverSelectorModalProps {
@@ -94,23 +96,12 @@ export function AlbumCoverSelectorModal({
         },
         onError: (error: any) => {
           if (import.meta.env.DEV) {
-            console.error('[AlbumCoverSelector] ❌ Error applying cover:', error);
+            logger.error('[AlbumCoverSelector] ❌ Error applying cover:', error);
           }
           setApplyError(error?.response?.data?.message || error?.message || 'Error al aplicar la carátula');
         },
       },
     );
-  };
-
-  const getProviderLabel = (provider: string) => {
-    const labels: Record<string, string> = {
-      coverartarchive: 'Cover Art Archive',
-      fanart: 'Fanart.tv',
-      musicbrainz: 'MusicBrainz',
-      lastfm: 'Last.fm',
-      spotify: 'Spotify',
-    };
-    return labels[provider] || provider;
   };
 
   return (
@@ -186,7 +177,7 @@ export function AlbumCoverSelectorModal({
                       <option value="">Todos ({covers.length})</option>
                       {providers.map((provider) => (
                         <option key={provider} value={provider}>
-                          {getProviderLabel(provider)} (
+                          {metadataService.getProviderLabel(provider)} (
                           {covers.filter((c) => c.provider === provider).length})
                         </option>
                       ))}
@@ -222,7 +213,7 @@ export function AlbumCoverSelectorModal({
                       </div>
                       <div className={styles.coverInfo}>
                         <span className={styles.coverProvider}>
-                          {getProviderLabel(cover.provider)}
+                          {metadataService.getProviderLabel(cover.provider)}
                         </span>
                         {cover.width && cover.height && (
                           <span className={styles.coverResolution}>

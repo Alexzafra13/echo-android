@@ -1,1 +1,0 @@
-export { SharedAlbumGrid } from './SharedAlbumGrid';

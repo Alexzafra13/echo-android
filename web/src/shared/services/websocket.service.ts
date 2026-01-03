@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
+import { logger } from '@shared/utils/logger';
 
 /**
  * WebSocketService - Cliente WebSocket para conexión con el servidor
@@ -61,11 +62,10 @@ export class WebSocketService {
    * @returns Socket conectado al namespace
    */
   connect(namespace: string, token: string): Socket {
-    const key = `${namespace}`;
-
     // Si ya existe una conexión activa, retornarla
-    if (this.sockets.has(key) && this.sockets.get(key)!.connected) {
-      return this.sockets.get(key)!;
+    const existingSocket = this.sockets.get(namespace);
+    if (existingSocket?.connected) {
+      return existingSocket;
     }
 
     // Crear nueva conexión
@@ -82,18 +82,18 @@ export class WebSocketService {
 
     socket.on('error', (error: Error) => {
       if (import.meta.env.DEV) {
-        console.error(`[WebSocket] Error on /${namespace}:`, error);
+        logger.error(`[WebSocket] Error on /${namespace}:`, error);
       }
     });
 
     socket.on('connect_error', (error: Error) => {
       if (import.meta.env.DEV) {
-        console.error(`[WebSocket] Connection error on /${namespace}:`, error.message);
+        logger.error(`[WebSocket] Connection error on /${namespace}:`, error.message);
       }
     });
 
     // Guardar socket
-    this.sockets.set(key, socket);
+    this.sockets.set(namespace, socket);
 
     return socket;
   }
@@ -102,12 +102,11 @@ export class WebSocketService {
    * Desconectar de un namespace
    */
   disconnect(namespace: string): void {
-    const key = `${namespace}`;
-    const socket = this.sockets.get(key);
+    const socket = this.sockets.get(namespace);
 
     if (socket) {
       socket.disconnect();
-      this.sockets.delete(key);
+      this.sockets.delete(namespace);
     }
   }
 
@@ -125,8 +124,7 @@ export class WebSocketService {
    * Obtener socket de un namespace si existe
    */
   getSocket(namespace: string): Socket | undefined {
-    const key = `${namespace}`;
-    return this.sockets.get(key);
+    return this.sockets.get(namespace);
   }
 
   /**

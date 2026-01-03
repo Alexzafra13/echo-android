@@ -8,6 +8,7 @@ import { PlaylistCover } from '../../components/PlaylistCover';
 import { getGenrePlaylistsPaginated, type AutoPlaylist } from '@shared/services/recommendations.service';
 import { useAuthStore } from '@shared/store';
 import { logger } from '@shared/utils/logger';
+import { safeSessionStorage } from '@shared/utils/safeSessionStorage';
 import styles from './GenrePlaylistsPage.module.css';
 
 /**
@@ -61,8 +62,8 @@ export function GenrePlaylistsPage() {
   }, []);
 
   const handlePlaylistClick = (playlist: AutoPlaylist) => {
-    sessionStorage.setItem('currentPlaylist', JSON.stringify(playlist));
-    sessionStorage.setItem('playlistReturnPath', '/genre-playlists');
+    safeSessionStorage.setItem('currentPlaylist', JSON.stringify(playlist));
+    safeSessionStorage.setItem('playlistReturnPath', '/genre-playlists');
     setLocation(`/wave-mix/${playlist.id}`);
   };
 
@@ -208,7 +209,7 @@ export function GenrePlaylistsPage() {
                       name={playlist.name}
                       coverColor={playlist.coverColor}
                       coverImageUrl={playlist.coverImageUrl}
-                      size="large"
+                      size="responsive"
                     />
                     <div className={styles.playlistCard__info}>
                       <h3 className={styles.playlistCard__name}>{playlist.name}</h3>

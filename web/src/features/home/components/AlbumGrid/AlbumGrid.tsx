@@ -3,7 +3,15 @@ import { AlbumCard } from '../AlbumCard';
 import type { AlbumGridProps } from '../../types';
 import { albumsService } from '../../services';
 import { usePlayer } from '@features/player/context/PlayerContext';
+import { logger } from '@shared/utils/logger';
 import styles from './AlbumGrid.module.css';
+
+interface ExtendedAlbumGridProps extends AlbumGridProps {
+  showViewAll?: boolean;
+  viewAllPath?: string;
+  /** Mobile layout: 'carousel' (horizontal scroll) or 'grid' (keep grid). Default: 'carousel' */
+  mobileLayout?: 'carousel' | 'grid';
+}
 
 /**
  * AlbumGrid Component
@@ -15,9 +23,16 @@ import styles from './AlbumGrid.module.css';
  *   albums={recentAlbums}
  *   showViewAll={true}
  *   viewAllPath="/albums"
+ *   mobileLayout="carousel" // or "grid" to keep grid on mobile
  * />
  */
-export function AlbumGrid({ title, albums, showViewAll = false, viewAllPath = '/albums' }: AlbumGridProps & { showViewAll?: boolean; viewAllPath?: string }) {
+export function AlbumGrid({
+  title,
+  albums,
+  showViewAll = false,
+  viewAllPath = '/albums',
+  mobileLayout = 'carousel',
+}: ExtendedAlbumGridProps) {
   const [, setLocation] = useLocation();
   const { playQueue } = usePlayer();
 
@@ -51,7 +66,7 @@ export function AlbumGrid({ title, albums, showViewAll = false, viewAllPath = '/
       }
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Failed to load album tracks:', error);
+        logger.error('Failed to load album tracks:', error);
       }
     }
   };
@@ -63,6 +78,10 @@ export function AlbumGrid({ title, albums, showViewAll = false, viewAllPath = '/
   if (!albums || albums.length === 0) {
     return null;
   }
+
+  const gridClassName = mobileLayout === 'grid'
+    ? `${styles.albumGrid__grid} ${styles['albumGrid__grid--mobileGrid']}`
+    : styles.albumGrid__grid;
 
   return (
     <section className={styles.albumGrid}>
@@ -77,7 +96,7 @@ export function AlbumGrid({ title, albums, showViewAll = false, viewAllPath = '/
           </button>
         )}
       </div>
-      <div className={styles.albumGrid__grid}>
+      <div className={gridClassName}>
         {albums.map((album) => (
           <AlbumCard
             key={album.id}

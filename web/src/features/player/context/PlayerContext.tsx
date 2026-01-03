@@ -21,10 +21,12 @@ import { usePlayTracking } from '../hooks/usePlayTracking';
 import { useQueueManagement } from '../hooks/useQueueManagement';
 import { useCrossfadeLogic } from '../hooks/useCrossfadeLogic';
 import { useRadioPlayback } from '../hooks/useRadioPlayback';
+import { useAutoplaySettings } from '../hooks/useAutoplaySettings';
+import { useAutoplay } from '../hooks/useAutoplay';
 import { useRadioMetadata } from '@features/radio/hooks/useRadioMetadata';
 import { logger } from '@shared/utils/logger';
-import { updatePlaybackState } from '@shared/services/play-tracking.service';
-import { useAuthStore } from '@shared/store';
+import { useMediaSession } from '../hooks/useMediaSession';
+import { useSocialSync } from '../hooks/useSocialSync';
 import type { RadioBrowserStation } from '@shared/types/radio.types';
 
 const PlayerContext = createContext<PlayerContextValue | undefined>(undefined);
@@ -35,7 +37,7 @@ interface PlayerProviderProps {
 
 export function PlayerProvider({ children }: PlayerProviderProps) {
   // ========== EXTERNAL HOOKS ==========
-  const { data: streamTokenData } = useStreamToken();
+  const { data: streamTokenData, ensureToken } = useStreamToken();
   const {
     settings: crossfadeSettings,
     setEnabled: setCrossfadeEnabledStorage,
@@ -47,6 +49,11 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     setTargetLufs: setNormalizationTargetLufsStorage,
     setPreventClipping: setNormalizationPreventClippingStorage,
   } = useNormalizationSettings();
+  const {
+    settings: autoplaySettings,
+    setEnabled: setAutoplayEnabledStorage,
+  } = useAutoplaySettings();
+  const autoplay = useAutoplay();
 
   // ========== STATE ==========
   const [isPlaying, setIsPlaying] = useState(false);
@@ -54,6 +61,8 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
   const [duration, setDuration] = useState(0);
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
   const [userVolume, setUserVolumeState] = useState(0.7); // Volumen del usuario (para el slider)
+  const [isAutoplayActive, setIsAutoplayActive] = useState(false); // Indica si estamos reproduciendo desde autoplay
+  const [autoplaySourceArtist, setAutoplaySourceArtist] = useState<string | null>(null); // Artista fuente del autoplay
 
   // Ref for playNext callback to avoid circular dependencies
   const playNextRef = useRef<(useCrossfade: boolean) => void>(() => {});
@@ -177,22 +186,43 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
 
   /**
    * Build stream URL for a track
+   * Uses custom streamUrl if available (for federated/remote tracks)
+   * Now async to wait for token if not yet available
    */
-  const getStreamUrl = useCallback((track: Track): string | null => {
-    if (!streamTokenData?.token) {
-      logger.error('[Player] Stream token not available');
+  const getStreamUrl = useCallback(async (track: Track): Promise<string | null> => {
+    // Try to get token from cache first
+    let token: string | null = streamTokenData?.token ?? null;
+
+    // If no token in cache, wait for it to load
+    if (!token) {
+      logger.debug('[Player] Token not in cache, waiting for it...');
+      token = await ensureToken();
+    }
+
+    if (!token) {
+      logger.error('[Player] Stream token not available after waiting');
       return null;
     }
+
+    // If track has a custom stream URL (e.g., federated track), add token to it
+    if (track.streamUrl) {
+      const separator = track.streamUrl.includes('?') ? '&' : '?';
+      return `${track.streamUrl}${separator}token=${token}`;
+    }
+
     const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-    return `${API_BASE_URL}/tracks/${track.id}/stream?token=${streamTokenData.token}`;
-  }, [streamTokenData?.token]);
+    return `${API_BASE_URL}/tracks/${track.id}/stream?token=${token}`;
+  }, [streamTokenData?.token, ensureToken]);
 
   /**
    * Play a track with optional crossfade
    */
   const playTrack = useCallback(async (track: Track, withCrossfade: boolean = false) => {
-    const streamUrl = getStreamUrl(track);
-    if (!streamUrl) return;
+    const streamUrl = await getStreamUrl(track);
+    if (!streamUrl) {
+      logger.warn('[Player] Cannot play track: stream URL unavailable');
+      return;
+    }
 
     // Exit radio mode if active
     if (radio.isRadioMode) {
@@ -295,9 +325,53 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
   // ========== QUEUE OPERATIONS ==========
 
   /**
+   * Trigger autoplay with similar artists
+   * @returns true if autoplay was triggered, false otherwise
+   */
+  const triggerAutoplay = useCallback(async (useCrossfade: boolean = false): Promise<boolean> => {
+    const canAutoplay = autoplaySettings.enabled && currentTrack?.artistId && !radio.isRadioMode;
+
+    if (!canAutoplay || !currentTrack?.artistId) {
+      logger.debug('[Player] Cannot autoplay - conditions not met');
+      setIsPlaying(false);
+      setIsAutoplayActive(false);
+      setAutoplaySourceArtist(null);
+      return false;
+    }
+
+    logger.warn('[Player] Triggering autoplay for artist:', currentTrack.artistId);
+
+    const currentQueueIds = new Set(queue.queue.map(t => t.id));
+    const result = await autoplay.loadSimilarArtistTracks(
+      currentTrack.artistId,
+      currentQueueIds
+    );
+
+    if (result.tracks.length > 0) {
+      logger.warn(`[Player] Autoplay: loaded ${result.tracks.length} tracks from similar artists`);
+      setIsAutoplayActive(true);
+      setAutoplaySourceArtist(result.sourceArtistName);
+
+      // Calculate next index BEFORE adding to queue
+      const nextIndex = queue.queue.length;
+      // Add tracks to queue and play
+      queue.addToQueue(result.tracks);
+      queue.setCurrentIndex(nextIndex);
+      playTrack(result.tracks[0], useCrossfade);
+      return true;
+    } else {
+      logger.debug('[Player] Autoplay: no similar tracks found');
+      setIsPlaying(false);
+      setIsAutoplayActive(false);
+      setAutoplaySourceArtist(null);
+      return false;
+    }
+  }, [autoplaySettings.enabled, currentTrack, radio.isRadioMode, queue, autoplay, playTrack]);
+
+  /**
    * Handle playing next track
    */
-  const handlePlayNext = useCallback((useCrossfade: boolean = false) => {
+  const handlePlayNext = useCallback(async (useCrossfade: boolean = false) => {
     if (queue.queue.length === 0) return;
 
     // End current session as skipped if there's an active session
@@ -306,14 +380,20 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     }
 
     const nextIndex = queue.getNextIndex();
-    if (nextIndex === -1) return;
+
+    // No next track - try autoplay
+    if (nextIndex === -1) {
+      logger.warn('[Player] No next track, attempting autoplay via next button');
+      await triggerAutoplay(useCrossfade);
+      return;
+    }
 
     queue.setCurrentIndex(nextIndex);
     const nextTrack = queue.getTrackAt(nextIndex);
     if (nextTrack) {
       playTrack(nextTrack, useCrossfade);
     }
-  }, [queue, playTracking, playTrack]);
+  }, [queue, playTracking, playTrack, triggerAutoplay]);
 
   // Update ref for crossfade callback
   useEffect(() => {
@@ -354,13 +434,19 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
 
   /**
    * Play a queue of tracks starting at index
+   * Does NOT auto-shuffle - caller is responsible for shuffle state and track order
    */
   const playQueue = useCallback((tracks: Track[], startIndex: number = 0) => {
+    // Reset autoplay state when user starts new playback
+    setIsAutoplayActive(false);
+    setAutoplaySourceArtist(null);
+    autoplay.resetSession();
+
     queue.setQueue(tracks, startIndex);
     if (tracks[startIndex]) {
       playTrack(tracks[startIndex], false);
     }
-  }, [queue, playTrack]);
+  }, [queue, playTrack, autoplay]);
 
   /**
    * Remove track from queue
@@ -384,19 +470,36 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     const audioB = audioElements.audioRefB.current;
     if (!audioA || !audioB) return;
 
-    const handleEnded = () => {
+    const handleEnded = async () => {
       // Only handle ended if not in crossfade mode
       if (crossfade.isCrossfading) return;
 
       // Record completed play (not skipped)
       playTracking.endPlaySession(false);
 
+      const hasNextTrack = queue.hasNext();
+
+      // Using warn level so it shows in production for debugging
+      logger.warn('[Player] Track ended - checking next action', {
+        repeatMode: queue.repeatMode,
+        hasNext: hasNextTrack,
+        currentIndex: queue.currentIndex,
+        queueLength: queue.queue.length,
+        autoplayEnabled: autoplaySettings.enabled,
+        artistId: currentTrack?.artistId || 'MISSING',
+        artistName: currentTrack?.artist || 'MISSING',
+        isRadioMode: radio.isRadioMode,
+      });
+
       if (queue.repeatMode === 'one') {
+        logger.warn('[Player] Repeat one - replaying current track');
         audioElements.playActive();
-      } else if (queue.hasNext()) {
+      } else if (hasNextTrack) {
+        logger.debug('[Player] Playing next track in queue');
         handlePlayNext(false);
       } else {
-        setIsPlaying(false);
+        // No more tracks in queue - try autoplay
+        await triggerAutoplay(crossfadeSettings.enabled);
       }
     };
 
@@ -406,89 +509,48 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       audioA.removeEventListener('ended', handleEnded);
       audioB.removeEventListener('ended', handleEnded);
     };
-  }, [audioElements, crossfade.isCrossfading, playTracking, queue, handlePlayNext]);
+  }, [audioElements, crossfade.isCrossfading, playTracking, queue, handlePlayNext, autoplaySettings.enabled, currentTrack, radio.isRadioMode, triggerAutoplay, crossfadeSettings.enabled]);
+
+  // ========== AUTOPLAY PREFETCH ==========
+  // Prefetch similar artist tracks when nearing end of queue for instant playback
+  useEffect(() => {
+    if (!autoplaySettings.enabled || radio.isRadioMode || !currentTrack?.artistId) {
+      return;
+    }
+
+    const tracksRemaining = queue.queue.length - queue.currentIndex - 1;
+    const threshold = autoplay.getPrefetchThreshold();
+
+    // Start prefetch when we're within threshold of queue end
+    if (tracksRemaining <= threshold && tracksRemaining >= 0) {
+      logger.debug(`[Player] ${tracksRemaining} tracks remaining, prefetching autoplay tracks`);
+      const currentQueueIds = new Set(queue.queue.map(t => t.id));
+      autoplay.prefetchSimilarArtistTracks(currentTrack.artistId, currentQueueIds);
+    }
+  }, [autoplaySettings.enabled, radio.isRadioMode, currentTrack, queue.currentIndex, queue.queue, autoplay]);
 
   // ========== MEDIA SESSION API (for mobile background playback) ==========
-  useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
-
-    // Update metadata when track changes
-    if (currentTrack) {
-      const artwork = currentTrack.coverImage || currentTrack.albumId
-        ? [{ src: currentTrack.coverImage || `/api/albums/${currentTrack.albumId}/cover`, sizes: '512x512', type: 'image/jpeg' }]
-        : [];
-
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentTrack.title,
-        artist: currentTrack.artist || 'Unknown Artist',
-        album: currentTrack.albumName || '',
-        artwork,
-      });
-    } else if (radio.isRadioMode && radio.currentStation) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: radio.metadata?.title || radio.currentStation.name,
-        artist: radio.metadata?.artist || 'Radio',
-        album: radio.currentStation.name,
-        artwork: radio.currentStation.favicon
-          ? [{ src: radio.currentStation.favicon, sizes: '512x512', type: 'image/png' }]
-          : [],
-      });
-    }
-  }, [currentTrack, radio.isRadioMode, radio.currentStation, radio.metadata]);
-
-  // Set up Media Session action handlers
-  useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
-
-    const actionHandlers: [MediaSessionAction, MediaSessionActionHandler][] = [
-      ['play', () => { play(); }],
-      ['pause', () => { pause(); }],
-      ['previoustrack', () => { playPrevious(); }],
-      ['nexttrack', () => { playNext(); }],
-      ['seekto', (details) => { if (details.seekTime !== undefined) seek(details.seekTime); }],
-    ];
-
-    for (const [action, handler] of actionHandlers) {
-      try {
-        navigator.mediaSession.setActionHandler(action, handler);
-      } catch {
-        // Some actions may not be supported
-      }
-    }
-
-    return () => {
-      for (const [action] of actionHandlers) {
-        try {
-          navigator.mediaSession.setActionHandler(action, null);
-        } catch {
-          // Ignore cleanup errors
-        }
-      }
-    };
-  }, [play, pause, playPrevious, playNext, seek]);
-
-  // Update playback state for Media Session
-  useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
-    navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
-  }, [isPlaying]);
+  useMediaSession({
+    currentTrack,
+    radio: {
+      isRadioMode: radio.isRadioMode,
+      currentStation: radio.currentStation,
+      metadata: radio.metadata,
+    },
+    isPlaying,
+    play,
+    pause,
+    playPrevious,
+    playNext,
+    seek,
+  });
 
   // ========== SOCIAL "LISTENING NOW" SYNC ==========
-  // Update playback state in backend for friends to see
-  useEffect(() => {
-    // Only sync for track playback (not radio)
-    if (radio.isRadioMode) return;
-
-    // Check if user is authenticated before syncing
-    const isAuthenticated = useAuthStore.getState().isAuthenticated;
-    if (!isAuthenticated) return;
-
-    // Send playback state to backend (fire and forget, errors are handled silently)
-    updatePlaybackState({
-      isPlaying,
-      currentTrackId: isPlaying && currentTrack ? currentTrack.id : null,
-    });
-  }, [isPlaying, currentTrack?.id, radio.isRadioMode]);
+  useSocialSync({
+    isPlaying,
+    currentTrackId: currentTrack?.id ?? null,
+    isRadioMode: radio.isRadioMode,
+  });
 
   // ========== RADIO OPERATIONS ==========
 
@@ -544,6 +606,12 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
     normalization.applyGain(currentTrack);
   }, [setNormalizationPreventClippingStorage, normalization, currentTrack]);
 
+  // ========== AUTOPLAY SETTINGS ==========
+
+  const setAutoplayEnabled = useCallback((enabled: boolean) => {
+    setAutoplayEnabledStorage(enabled);
+  }, [setAutoplayEnabledStorage]);
+
   // ========== CONTEXT VALUE ==========
 
   const value: PlayerContextValue = useMemo(
@@ -551,6 +619,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       // Track state
       currentTrack,
       queue: queue.queue,
+      currentIndex: queue.currentIndex,
       isPlaying,
       volume: userVolume,
       currentTime,
@@ -570,6 +639,11 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       isRadioMode: radio.isRadioMode,
       radioMetadata: radio.metadata,
       radioSignalStatus: radio.signalStatus,
+
+      // Autoplay state
+      autoplay: autoplaySettings,
+      isAutoplayActive,
+      autoplaySourceArtist,
 
       // Playback controls
       play,
@@ -593,6 +667,7 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       seek,
       setVolume,
       toggleShuffle: queue.toggleShuffle,
+      setShuffle: queue.setShuffle,
       toggleRepeat: queue.toggleRepeat,
 
       // Crossfade controls
@@ -603,10 +678,14 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       setNormalizationEnabled,
       setNormalizationTargetLufs,
       setNormalizationPreventClipping,
+
+      // Autoplay controls
+      setAutoplayEnabled,
     }),
     [
       currentTrack,
       queue.queue,
+      queue.currentIndex,
       queue.isShuffle,
       queue.repeatMode,
       queue.addToQueue,
@@ -641,6 +720,10 @@ export function PlayerProvider({ children }: PlayerProviderProps) {
       setNormalizationEnabled,
       setNormalizationTargetLufs,
       setNormalizationPreventClipping,
+      autoplaySettings,
+      isAutoplayActive,
+      autoplaySourceArtist,
+      setAutoplayEnabled,
     ]
   );
 

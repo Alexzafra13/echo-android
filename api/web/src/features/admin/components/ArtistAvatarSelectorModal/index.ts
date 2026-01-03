@@ -1,1 +1,0 @@
-export { ArtistAvatarSelectorModal } from './ArtistAvatarSelectorModal';

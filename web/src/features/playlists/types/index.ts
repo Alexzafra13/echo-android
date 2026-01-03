@@ -37,6 +37,9 @@ export interface PlaylistTrack {
   albumName?: string;
   suffix?: string;
   playlistOrder?: number;
+  // ReplayGain audio normalization
+  rgTrackGain?: number;
+  rgTrackPeak?: number;
 }
 
 export interface CreatePlaylistDto {
@@ -55,6 +58,11 @@ export interface AddTrackToPlaylistDto {
   trackId: string;
 }
 
+export interface TrackOrderDto {
+  trackId: string;
+  order: number;
+}
+
 export interface ReorderTracksDto {
-  trackIds: string[];
+  trackOrders: TrackOrderDto[];
 }

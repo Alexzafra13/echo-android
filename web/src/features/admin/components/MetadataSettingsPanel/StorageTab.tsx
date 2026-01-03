@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Folder, HardDrive, CheckCircle2, XCircle, AlertCircle, ChevronRight, ChevronLeft, Lock } from 'lucide-react';
 import { Button, Input } from '@shared/components/ui';
 import { apiClient } from '@shared/services/api';
+import { logger } from '@shared/utils/logger';
 import styles from './StorageTab.module.css';
 
 interface DirectoryEntry {
@@ -66,7 +67,7 @@ export function StorageTab() {
       validatePath(path);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error loading settings:', error);
+        logger.error('Error loading settings:', error);
       }
     } finally {
       setIsLoading(false);
@@ -88,7 +89,7 @@ export function StorageTab() {
       setValidationResult(response.data);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error validating path:', error);
+        logger.error('Error validating path:', error);
       }
       setValidationResult({
         valid: false,
@@ -114,7 +115,9 @@ export function StorageTab() {
       setDirectories(response.data.directories);
       setParentPath(response.data.parent);
     } catch (error) {
-      console.error('Error browsing directory:', error);
+      if (import.meta.env.DEV) {
+        logger.error('Error browsing directory:', error);
+      }
     } finally {
       setIsBrowsing(false);
     }
@@ -157,7 +160,9 @@ export function StorageTab() {
       setSaveMessage({ type: 'success', text: 'Configuración guardada correctamente' });
       setTimeout(() => setSaveMessage(null), 3000);
     } catch (error: any) {
-      console.error('Error saving settings:', error);
+      if (import.meta.env.DEV) {
+        logger.error('Error saving settings:', error);
+      }
       setSaveMessage({
         type: 'error',
         text: error.response?.data?.message || 'Error al guardar la configuración'

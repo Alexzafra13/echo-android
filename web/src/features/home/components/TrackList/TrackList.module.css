@@ -47,6 +47,15 @@
   text-align: center;
 }
 
+.trackList__headerReorder {
+  text-align: center;
+}
+
+/* Header with reorder column */
+.trackList__header--reorderable {
+  grid-template-columns: 40px 50px 1fr 140px 80px 200px 40px;
+}
+
 /* Tracks Container */
 .trackList__tracks {
   margin-top: 8px;
@@ -104,6 +113,43 @@
   background: var(--white-05);
 }
 
+/* Track row with reorder column */
+.trackList__track--reorderable {
+  grid-template-columns: 40px 50px 1fr 140px 80px 200px 40px;
+}
+
+/* Reorder buttons container */
+.trackList__reorderButtons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.trackList__reorderButton {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--color-text-tertiary, #6b7280);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.trackList__reorderButton:hover:not(:disabled) {
+  color: var(--color-primary, #ed6842);
+  background: var(--white-10);
+}
+
+.trackList__reorderButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .trackList__track:hover .trackList__trackNumber {
   display: none;
 }
@@ -132,6 +178,35 @@
 
 .trackList__track--active .trackList__playButton {
   display: flex;
+}
+
+/* Missing Track (ghost track) - Using BEM modifier syntax */
+.trackList__track--missing {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+.trackList__track--missing:hover {
+  background: var(--white-03);
+}
+
+.trackList__track--missing .trackList__trackTitle {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.trackList__track--missing .trackList__trackArtist {
+  color: var(--color-text-tertiary);
+}
+
+.trackList__track--missing .trackList__trackCover {
+  filter: grayscale(100%);
+  opacity: 0.6;
+}
+
+.trackList__ghostIcon {
+  color: var(--color-text-tertiary);
 }
 
 /* Number cell - contains both track number and play button */
@@ -277,6 +352,70 @@
     border-radius: 8px; /* iOS rounded */
   }
 
+  /* Mobile reorderable track */
+  .trackList__track--reorderable {
+    grid-template-columns: 40px 1fr auto 36px 40px;
+    /* Explicit grid positions for visual reordering */
+  }
+
+  .trackList__track--reorderable > .trackList__numberCell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .trackList__track--reorderable > .trackList__reorderButtons {
+    grid-column: 4;
+    grid-row: 1;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .trackList__track--reorderable > .trackList__trackInfo {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .trackList__track--reorderable > .trackList__trackDuration {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .trackList__track--reorderable > .trackList__menuButton {
+    grid-column: 5;
+    grid-row: 1;
+  }
+
+  /* Hide format/rating columns on mobile reorderable */
+  .trackList__track--reorderable > .trackList__trackFormat,
+  .trackList__track--reorderable > .trackList__trackRating {
+    display: none;
+  }
+
+  .trackList__reorderButton {
+    padding: 4px;
+    width: 28px;
+    height: 18px;
+    background: transparent;
+    border-radius: 4px;
+  }
+
+  .trackList__reorderButton:disabled {
+    opacity: 0.25;
+  }
+
+  .trackList__reorderButton:not(:disabled) {
+    color: var(--color-text-secondary, #b8bcc8);
+  }
+
+  .trackList__reorderButton:active:not(:disabled) {
+    color: var(--color-primary, #ed6842);
+  }
+
+  .trackList__reorderButton svg {
+    width: 16px;
+    height: 16px;
+  }
+
   .trackList__numberCell {
     width: 40px; /* Reducido de 48px */
     height: 40px; /* Reducido de 48px */
@@ -351,6 +490,22 @@
     grid-template-columns: 36px 1fr auto 36px; /* 4 columnas: play | info | duración | menú */
     gap: 8px; /* Reducido */
     padding: 6px 10px; /* Más compacto */
+  }
+
+  /* Small mobile reorderable track */
+  .trackList__track--reorderable {
+    grid-template-columns: 36px 1fr auto 32px 36px;
+  }
+
+  .trackList__reorderButton {
+    width: 24px;
+    height: 16px;
+    padding: 2px;
+  }
+
+  .trackList__reorderButton svg {
+    width: 14px;
+    height: 14px;
   }
 
   .trackList__numberCell {

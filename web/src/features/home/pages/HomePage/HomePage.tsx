@@ -15,6 +15,7 @@ import { RadioStationCard } from '@features/radio/components/RadioStationCard/Ra
 import { usePlayer } from '@features/player/context/PlayerContext';
 import { useRandomAlbums } from '@features/explore/hooks';
 import { toAlbum } from '@features/explore/utils/transform';
+import { useSharedAlbumsForHome, SharedAlbumGrid } from '@features/federation';
 import type { HomeSectionId } from '@features/settings/services';
 import type { Album, HeroItem } from '../../types';
 import type { RadioStation } from '@features/radio/types';
@@ -28,17 +29,24 @@ export default function HomePage() {
   // Auto-refresh when scan completes
   useAutoRefreshOnScan();
 
+  // Responsive state for mobile detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
   // Calculate how many albums we need for 2 rows dynamically
-  const { itemsPerPage: neededAlbums } = useGridDimensions({
+  const { itemsPerPage: gridAlbums } = useGridDimensions({
     maxRows: 2,
     headerHeight: 450,
   });
 
   // Calculate how many playlists we need for 1 row dynamically
-  const { itemsPerPage: neededPlaylists } = useGridDimensions({
+  const { itemsPerPage: gridPlaylists } = useGridDimensions({
     maxRows: 1,
     headerHeight: 450,
   });
+
+  // On mobile, use more items for horizontal scroll (minimum 12)
+  const neededAlbums = isMobile ? Math.max(12, gridAlbums) : gridAlbums;
+  const neededPlaylists = isMobile ? Math.max(10, gridPlaylists) : gridPlaylists;
 
   const { data: featuredAlbum, isLoading: loadingFeatured } = useFeaturedAlbum();
   const { data: recentAlbums, isLoading: loadingRecent } = useRecentAlbums(
@@ -67,6 +75,10 @@ export default function HomePage() {
     queryClient.invalidateQueries({ queryKey: ['explore', 'random-albums'] });
   };
 
+  // Shared albums from connected servers
+  const { data: sharedAlbumsData } = useSharedAlbumsForHome(neededAlbums);
+  const sharedAlbums = sharedAlbumsData?.albums || [];
+
   // Get enabled sections sorted by order
   const enabledSections = useMemo(() => {
     if (!homePreferences?.homeSections) {
@@ -92,9 +104,6 @@ export default function HomePage() {
     setRefreshKey(Date.now());
     setCurrentHeroIndex(0); // Reset to first item
   }, []);
-
-  // Responsive state for mobile detection
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   // Helper: Check if album was released recently (within N days)
   const isRecentRelease = (album: Album, days: number = 90): boolean => {
@@ -329,7 +338,7 @@ export default function HomePage() {
                 className={styles.homeSection__viewAll}
                 onClick={() => setLocation('/playlists')}
               >
-                Ver todo
+                Ver todo →
               </button>
             </div>
             <div className={styles.playlistsGrid}>
@@ -366,7 +375,7 @@ export default function HomePage() {
                 className={styles.homeSection__viewAll}
                 onClick={() => setLocation('/radio')}
               >
-                Ver todo
+                Ver todo →
               </button>
             </div>
             <div className={styles.radiosGrid}>
@@ -403,6 +412,17 @@ export default function HomePage() {
             </div>
             <AlbumGrid title="" albums={randomAlbums} />
           </section>
+        );
+      case 'shared-albums':
+        return (
+          <SharedAlbumGrid
+            key="shared-albums"
+            title="Bibliotecas Compartidas"
+            albums={sharedAlbums}
+            showViewAll={sharedAlbums.length > 0}
+            viewAllPath="/albums?source=shared"
+            showEmptyState={true}
+          />
         );
       default:
         return null;

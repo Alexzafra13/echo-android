@@ -8,6 +8,7 @@ import { useArtist } from '@features/artists/hooks';
 import type { HeroSectionProps } from '../../types';
 import { isHeroAlbum, isHeroPlaylist } from '../../types';
 import { logger } from '@shared/utils/logger';
+import { safeSessionStorage } from '@shared/utils/safeSessionStorage';
 import styles from './HeroSection.module.css';
 
 /**
@@ -91,8 +92,8 @@ export function HeroSection({ item, onPlay, onNext, onPrevious }: HeroSectionPro
         duration: st.track!.duration || 0,
         coverImage: st.track!.albumId ? `/api/albums/${st.track!.albumId}/cover` : undefined,
         // Audio normalization data (LUFS)
-        rgTrackGain: (st.track as any)?.rgTrackGain,
-        rgTrackPeak: (st.track as any)?.rgTrackPeak,
+        rgTrackGain: st.track!.rgTrackGain,
+        rgTrackPeak: st.track!.rgTrackPeak,
       }));
   };
 
@@ -125,8 +126,8 @@ export function HeroSection({ item, onPlay, onNext, onPrevious }: HeroSectionPro
       setLocation(`/album/${album!.id}`);
     } else if (isPlaylist) {
       // Store playlist in sessionStorage and navigate to detail
-      sessionStorage.setItem('currentPlaylist', JSON.stringify(playlist));
-      sessionStorage.setItem('playlistReturnPath', '/');
+      safeSessionStorage.setItem('currentPlaylist', JSON.stringify(playlist));
+      safeSessionStorage.setItem('playlistReturnPath', '/');
       setLocation(`/wave-mix/${playlist!.id}`);
     }
   };
@@ -184,7 +185,7 @@ export function HeroSection({ item, onPlay, onNext, onPrevious }: HeroSectionPro
         onClick={handlePrevious}
         aria-label="Previous featured item"
       >
-        <ChevronLeft size={32} />
+        <ChevronLeft size={24} />
       </button>
 
       <button
@@ -192,7 +193,7 @@ export function HeroSection({ item, onPlay, onNext, onPrevious }: HeroSectionPro
         onClick={handleNext}
         aria-label="Next featured item"
       >
-        <ChevronRight size={32} />
+        <ChevronRight size={24} />
       </button>
 
       <div className={styles.heroSection__content}>

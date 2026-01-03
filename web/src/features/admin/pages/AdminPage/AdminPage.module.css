@@ -105,6 +105,10 @@
 
 /* Tablet */
 @media (max-width: 1024px) {
+  .adminPage__main {
+    margin-left: 180px; /* Adjusted for tablet sidebar width */
+  }
+
   .adminPage__content {
     padding: 116px 32px calc(40px + var(--player-bottom-spacer, 0px)); /* 84px + 32px + base padding + player spacer */
   }
@@ -148,4 +152,10 @@
   .adminPage__content {
     padding: 0 16px calc(60px + var(--player-bottom-spacer, 0px));
   }
+}
+
+/* ===== Light Theme Styles ===== */
+:root[data-theme="light"] .adminPage {
+  background: var(--bg-base, #e5e7eb);
+  background-image: var(--gradient-textured);
 }

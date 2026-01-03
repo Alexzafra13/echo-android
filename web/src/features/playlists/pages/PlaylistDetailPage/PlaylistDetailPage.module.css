@@ -171,47 +171,9 @@
 .playlistDetailPage__heroActions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-top: 8px;
-}
-
-.playlistDetailPage__heroActionButton {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: transparent;
-  border: 2px solid var(--white-20);
-  color: var(--text-primary, #ffffff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.playlistDetailPage__heroActionButton:hover {
-  background: var(--white-10);
-  border-color: var(--white-40);
-  transform: scale(1.05);
-}
-
-.playlistDetailPage__heroMoreButton {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary, #b8bcc8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.playlistDetailPage__heroMoreButton:hover {
-  color: var(--text-primary, #ffffff);
-  background: var(--white-05);
+  flex-wrap: wrap;
 }
 
 /* Track Section */
@@ -270,7 +232,7 @@
 .playlistDetailPage__imageModal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.95);
+  background: var(--black-95);
   backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
@@ -360,8 +322,19 @@
     font-size: 32px;
   }
 
-  .playlistDetailPage__heroActionButton {
-    border-radius: 20px; /* iOS rounded button */
+  .playlistDetailPage__heroActions {
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+  }
+
+  /* Botones más prominentes en móvil (excluye botón de opciones) */
+  .playlistDetailPage__heroActions > button {
+    padding: 12px 24px;
+    font-size: 15px;
+    border-radius: 6px;
+    flex: 1;
+    max-width: 160px;
   }
 
   .playlistDetailPage__trackSection {
@@ -386,15 +359,31 @@
   .playlistDetailPage__heroTitle {
     font-size: 28px;
   }
+
+  .playlistDetailPage__heroActions {
+    gap: 10px;
+  }
+
+  /* Botones en móvil pequeño (excluye botón de opciones) */
+  .playlistDetailPage__heroActions > button {
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 6px;
+  }
 }
 
 /* ===== Light Theme Styles ===== */
+:root[data-theme="light"] .playlistDetailPage {
+  background: #e5e7eb;
+  background-image: var(--gradient-textured);
+}
+
 :root[data-theme="light"] .playlistDetailPage__content {
-  background: linear-gradient(180deg, rgba(237, 104, 66, 0.08) 0%, rgba(229, 231, 235, 1) 40%);
+  background: linear-gradient(180deg, rgba(237, 104, 66, 0.08) 0%, #e5e7eb 40%);
 }
 
 :root[data-theme="light"] .playlistDetailPage__hero {
-  background: rgba(209, 213, 219, 0.35);
+  background: rgba(156, 163, 175, 0.4);
   backdrop-filter: blur(10px);
 }
 

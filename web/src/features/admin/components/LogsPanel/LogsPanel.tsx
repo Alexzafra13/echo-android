@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw, AlertCircle, AlertTriangle, Info, Bug, XCircle, Filter, Calendar } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info, Bug, XCircle, Filter, Calendar, ChevronDown, Search, Database, Shield, Globe, HardDrive, Trash2, FileText } from 'lucide-react';
 import { Button, InlineNotification } from '@shared/components/ui';
 import { apiClient } from '@shared/services/api';
 import { formatDateWithTime } from '@shared/utils/format';
+import { logger } from '@shared/utils/logger';
 import styles from './LogsPanel.module.css';
 
 interface SystemLog {
@@ -26,11 +28,20 @@ interface LogsResponse {
 }
 
 const LEVEL_CONFIG = {
-  critical: { icon: XCircle, color: '#ef4444', label: 'CRÍTICO' },
-  error: { icon: AlertCircle, color: '#f97316', label: 'ERROR' },
-  warning: { icon: AlertTriangle, color: '#eab308', label: 'ADVERTENCIA' },
-  info: { icon: Info, color: '#3b82f6', label: 'INFO' },
-  debug: { icon: Bug, color: '#6b7280', label: 'DEBUG' },
+  critical: { icon: XCircle, color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)', label: 'CRÍTICO' },
+  error: { icon: AlertCircle, color: '#f97316', bgColor: 'rgba(249, 115, 22, 0.15)', label: 'ERROR' },
+  warning: { icon: AlertTriangle, color: '#eab308', bgColor: 'rgba(234, 179, 8, 0.15)', label: 'ADVERTENCIA' },
+  info: { icon: Info, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.15)', label: 'INFO' },
+  debug: { icon: Bug, color: '#6b7280', bgColor: 'rgba(107, 114, 128, 0.15)', label: 'DEBUG' },
+};
+
+const CATEGORY_CONFIG: Record<string, { icon: LucideIcon; color: string; bgColor: string }> = {
+  scanner: { icon: Search, color: '#22d3ee', bgColor: 'rgba(34, 211, 238, 0.15)' },
+  metadata: { icon: Database, color: '#a855f7', bgColor: 'rgba(168, 85, 247, 0.15)' },
+  auth: { icon: Shield, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.15)' },
+  api: { icon: Globe, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.15)' },
+  storage: { icon: HardDrive, color: '#f59e0b', bgColor: 'rgba(245, 158, 11, 0.15)' },
+  cleanup: { icon: Trash2, color: '#ec4899', bgColor: 'rgba(236, 72, 153, 0.15)' },
 };
 
 /**
@@ -43,7 +54,7 @@ export function LogsPanel() {
   const [total, setTotal] = useState(0);
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [limit] = useState(50);
+  const [limit] = useState(10);
   const [offset, setOffset] = useState(0);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +87,7 @@ export function LogsPanel() {
       setTotal(response.data.total);
     } catch (err: any) {
       if (import.meta.env.DEV) {
-        console.error('Error loading logs:', err);
+        logger.error('Error loading logs:', err);
       }
       setError('Error al cargar logs');
     } finally {
@@ -100,7 +111,32 @@ export function LogsPanel() {
   const renderLogIcon = (level: SystemLog['level']) => {
     const config = LEVEL_CONFIG[level];
     const Icon = config.icon;
-    return <Icon size={20} style={{ color: config.color }} />;
+    return <Icon size={18} style={{ color: config.color }} />;
+  };
+
+  const renderCategoryBadge = (category: string) => {
+    const config = CATEGORY_CONFIG[category.toLowerCase()];
+    if (config) {
+      const Icon = config.icon;
+      return (
+        <div
+          className={styles.categoryBadge}
+          style={{
+            background: config.bgColor,
+            borderColor: config.color
+          }}
+        >
+          <Icon size={12} />
+          <span style={{ color: config.color }}>{category.toUpperCase()}</span>
+        </div>
+      );
+    }
+    return (
+      <div className={styles.categoryBadge}>
+        <FileText size={12} />
+        <span>{category.toUpperCase()}</span>
+      </div>
+    );
   };
 
   if (isLoading && logs.length === 0) {
@@ -112,10 +148,6 @@ export function LogsPanel() {
       {/* Header */}
       <div className={styles.header}>
         <h2 className={styles.title}>Logs del Sistema</h2>
-        <Button onClick={loadLogs} disabled={isLoading}>
-          <RefreshCw size={16} className={isLoading ? styles.spinning : ''} />
-          Actualizar
-        </Button>
       </div>
 
       {/* Error notification */}
@@ -190,20 +222,30 @@ export function LogsPanel() {
           logs.map((log) => (
             <div
               key={log.id}
-              className={`${styles.logCard} ${styles[`level-${log.level}`]}`}
+              className={`${styles.logCard} ${styles[`level-${log.level}`]} ${expandedLog === log.id ? styles.logCardExpanded : ''}`}
               onClick={() => toggleLogDetails(log.id)}
             >
               <div className={styles.logHeader}>
-                <div className={styles.logLevel}>
+                <div
+                  className={styles.levelBadge}
+                  style={{
+                    background: LEVEL_CONFIG[log.level].bgColor,
+                    borderColor: LEVEL_CONFIG[log.level].color
+                  }}
+                >
                   {renderLogIcon(log.level)}
-                  <span className={styles.levelLabel}>{LEVEL_CONFIG[log.level].label}</span>
+                  <span style={{ color: LEVEL_CONFIG[log.level].color }}>{LEVEL_CONFIG[log.level].label}</span>
                 </div>
 
-                <div className={styles.logCategory}>[{log.category.toUpperCase()}]</div>
+                {renderCategoryBadge(log.category)}
 
                 <div className={styles.logTime}>
                   <Calendar size={14} />
                   {formatDateWithTime(log.createdAt)}
+                </div>
+
+                <div className={`${styles.expandIndicator} ${expandedLog === log.id ? styles.expandIndicatorOpen : ''}`}>
+                  <ChevronDown size={18} />
                 </div>
               </div>
 
@@ -213,21 +255,24 @@ export function LogsPanel() {
                 <div className={styles.logDetails}>
                   {log.entityId && (
                     <div className={styles.detailRow}>
-                      <strong>Entity ID:</strong> {log.entityId}
-                      {log.entityType && ` (${log.entityType})`}
+                      <span className={styles.detailLabel}>Entity ID</span>
+                      <span className={styles.detailValue}>
+                        {log.entityId}
+                        {log.entityType && <span className={styles.entityType}>{log.entityType}</span>}
+                      </span>
                     </div>
                   )}
 
                   {log.details && (
                     <div className={styles.detailRow}>
-                      <strong>Detalles:</strong>
+                      <span className={styles.detailLabel}>Detalles</span>
                       <pre className={styles.detailsJson}>{formatDetails(log.details)}</pre>
                     </div>
                   )}
 
                   {log.stackTrace && (
                     <div className={styles.detailRow}>
-                      <strong>Stack Trace:</strong>
+                      <span className={styles.detailLabel}>Stack Trace</span>
                       <pre className={styles.stackTrace}>{log.stackTrace}</pre>
                     </div>
                   )}

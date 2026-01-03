@@ -1,10 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Settings, Eye, Lock, Palette, Globe, Check, ExternalLink, Music, Volume2, Home, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
-import { Link } from 'wouter';
+import { Settings, Palette, Globe, Check, Music, Volume2, Home, ChevronUp, ChevronDown, GripVertical, Sun, Moon, Monitor } from 'lucide-react';
 import { Header } from '@shared/components/layout/Header';
 import { Sidebar } from '@features/home/components';
-import { useAuth } from '@shared/hooks';
-import { usePrivacySettings, useUpdatePrivacySettings, useHomePreferences, useUpdateHomePreferences } from '../../hooks';
+import { useTheme } from '@shared/hooks';
+import { useHomePreferences, useUpdateHomePreferences } from '../../hooks';
 import { usePlayer } from '@features/player';
 import type { HomeSectionConfig, HomeSectionId } from '../../services';
 import styles from './SettingsPage.module.css';
@@ -19,16 +18,15 @@ const SECTION_LABELS: Record<HomeSectionId, string> = {
   'top-played': 'Más Escuchados',
   'favorite-radios': 'Radios Favoritas',
   'surprise-me': 'Sorpréndeme',
+  'shared-albums': 'Bibliotecas Compartidas',
 };
 
 /**
  * SettingsPage Component
- * User settings page with privacy, appearance, and language options
+ * User settings page with home customization, appearance, audio and playback options
  */
 export function SettingsPage() {
-  const { user } = useAuth();
-  const { data: privacySettings, isLoading } = usePrivacySettings();
-  const { mutate: updatePrivacy, isPending: isSaving, isSuccess } = useUpdatePrivacySettings();
+  const { themePreference, setThemePreference, theme } = useTheme();
   const { data: homePreferences, isLoading: isLoadingHome } = useHomePreferences();
   const { mutate: updateHome, isPending: isSavingHome, isSuccess: isSuccessHome } = useUpdateHomePreferences();
   const {
@@ -39,30 +37,12 @@ export function SettingsPage() {
     setNormalizationEnabled,
     setNormalizationTargetLufs,
     setNormalizationPreventClipping,
+    autoplay,
+    setAutoplayEnabled,
   } = usePlayer();
-
-  // Local state for privacy form
-  const [isPublicProfile, setIsPublicProfile] = useState(false);
-  const [showTopTracks, setShowTopTracks] = useState(true);
-  const [showTopArtists, setShowTopArtists] = useState(true);
-  const [showTopAlbums, setShowTopAlbums] = useState(true);
-  const [showPlaylists, setShowPlaylists] = useState(true);
-  const [bio, setBio] = useState('');
 
   // Local state for home sections
   const [homeSections, setHomeSections] = useState<HomeSectionConfig[]>([]);
-
-  // Sync privacy settings with server data
-  useEffect(() => {
-    if (privacySettings) {
-      setIsPublicProfile(privacySettings.isPublicProfile);
-      setShowTopTracks(privacySettings.showTopTracks);
-      setShowTopArtists(privacySettings.showTopArtists);
-      setShowTopAlbums(privacySettings.showTopAlbums);
-      setShowPlaylists(privacySettings.showPlaylists);
-      setBio(privacySettings.bio || '');
-    }
-  }, [privacySettings]);
 
   // Sync home sections with server data
   useEffect(() => {
@@ -109,26 +89,6 @@ export function SettingsPage() {
     )
   );
 
-  const handleSavePrivacy = () => {
-    updatePrivacy({
-      isPublicProfile,
-      showTopTracks,
-      showTopArtists,
-      showTopAlbums,
-      showPlaylists,
-      bio: bio.trim() || null,
-    });
-  };
-
-  const hasChanges = privacySettings && (
-    isPublicProfile !== privacySettings.isPublicProfile ||
-    showTopTracks !== privacySettings.showTopTracks ||
-    showTopArtists !== privacySettings.showTopArtists ||
-    showTopAlbums !== privacySettings.showTopAlbums ||
-    showPlaylists !== privacySettings.showPlaylists ||
-    (bio.trim() || '') !== (privacySettings.bio || '')
-  );
-
   return (
     <div className={styles.settingsPage}>
       <Sidebar />
@@ -149,7 +109,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {isLoading || isLoadingHome ? (
+          {isLoadingHome ? (
             <div className={styles.settingsPage__loading}>Cargando...</div>
           ) : (
             <>
@@ -177,7 +137,7 @@ export function SettingsPage() {
 
                         <div className={styles.settingsPage__sectionInfo}>
                           <span className={styles.settingsPage__sectionLabel}>
-                            {SECTION_LABELS[section.id]}
+                            {SECTION_LABELS[section.id] || section.id}
                           </span>
                         </div>
 
@@ -234,185 +194,7 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              {/* Privacy Settings Card */}
-              <div className={styles.settingsPage__card}>
-                <div className={styles.settingsPage__cardHeader}>
-                  <h2>
-                    <Eye size={20} />
-                    Perfil Público
-                  </h2>
-                </div>
-
-                <div className={styles.settingsPage__cardBody}>
-                  {/* Public Profile Toggle */}
-                  <div className={styles.settingsPage__toggleItem}>
-                    <div className={styles.settingsPage__toggleInfo}>
-                      <span className={styles.settingsPage__toggleLabel}>Perfil público</span>
-                      <p className={styles.settingsPage__toggleDescription}>
-                        Permite que otros usuarios vean tu perfil y estadísticas de escucha
-                      </p>
-                    </div>
-                    <label className={styles.settingsPage__toggle}>
-                      <input
-                        type="checkbox"
-                        className={styles.settingsPage__toggleInput}
-                        checked={isPublicProfile}
-                        onChange={(e) => setIsPublicProfile(e.target.checked)}
-                      />
-                      <span className={styles.settingsPage__toggleSlider}></span>
-                    </label>
-                  </div>
-
-                  {/* Conditional settings when profile is public */}
-                  {isPublicProfile && (
-                    <>
-                      <div className={styles.settingsPage__toggleItem}>
-                        <div className={styles.settingsPage__toggleInfo}>
-                          <span className={styles.settingsPage__toggleLabel}>Mostrar top canciones</span>
-                          <p className={styles.settingsPage__toggleDescription}>
-                            Muestra tus canciones más escuchadas en tu perfil
-                          </p>
-                        </div>
-                        <label className={styles.settingsPage__toggle}>
-                          <input
-                            type="checkbox"
-                            className={styles.settingsPage__toggleInput}
-                            checked={showTopTracks}
-                            onChange={(e) => setShowTopTracks(e.target.checked)}
-                          />
-                          <span className={styles.settingsPage__toggleSlider}></span>
-                        </label>
-                      </div>
-
-                      <div className={styles.settingsPage__toggleItem}>
-                        <div className={styles.settingsPage__toggleInfo}>
-                          <span className={styles.settingsPage__toggleLabel}>Mostrar top artistas</span>
-                          <p className={styles.settingsPage__toggleDescription}>
-                            Muestra tus artistas más escuchados en tu perfil
-                          </p>
-                        </div>
-                        <label className={styles.settingsPage__toggle}>
-                          <input
-                            type="checkbox"
-                            className={styles.settingsPage__toggleInput}
-                            checked={showTopArtists}
-                            onChange={(e) => setShowTopArtists(e.target.checked)}
-                          />
-                          <span className={styles.settingsPage__toggleSlider}></span>
-                        </label>
-                      </div>
-
-                      <div className={styles.settingsPage__toggleItem}>
-                        <div className={styles.settingsPage__toggleInfo}>
-                          <span className={styles.settingsPage__toggleLabel}>Mostrar top álbumes</span>
-                          <p className={styles.settingsPage__toggleDescription}>
-                            Muestra tus álbumes más escuchados en tu perfil
-                          </p>
-                        </div>
-                        <label className={styles.settingsPage__toggle}>
-                          <input
-                            type="checkbox"
-                            className={styles.settingsPage__toggleInput}
-                            checked={showTopAlbums}
-                            onChange={(e) => setShowTopAlbums(e.target.checked)}
-                          />
-                          <span className={styles.settingsPage__toggleSlider}></span>
-                        </label>
-                      </div>
-
-                      <div className={styles.settingsPage__toggleItem}>
-                        <div className={styles.settingsPage__toggleInfo}>
-                          <span className={styles.settingsPage__toggleLabel}>Mostrar playlists públicas</span>
-                          <p className={styles.settingsPage__toggleDescription}>
-                            Muestra tus playlists marcadas como públicas en tu perfil
-                          </p>
-                        </div>
-                        <label className={styles.settingsPage__toggle}>
-                          <input
-                            type="checkbox"
-                            className={styles.settingsPage__toggleInput}
-                            checked={showPlaylists}
-                            onChange={(e) => setShowPlaylists(e.target.checked)}
-                          />
-                          <span className={styles.settingsPage__toggleSlider}></span>
-                        </label>
-                      </div>
-
-                      {/* Bio */}
-                      <div className={styles.settingsPage__toggleItem} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
-                        <div className={styles.settingsPage__toggleInfo}>
-                          <span className={styles.settingsPage__toggleLabel}>Biografía</span>
-                          <p className={styles.settingsPage__toggleDescription}>
-                            Cuéntales a otros usuarios sobre tus gustos musicales
-                          </p>
-                        </div>
-                        <textarea
-                          className={styles.settingsPage__textarea}
-                          value={bio}
-                          onChange={(e) => setBio(e.target.value.slice(0, 500))}
-                          placeholder="Escribe algo sobre ti..."
-                          maxLength={500}
-                        />
-                        <div className={styles.settingsPage__charCount}>
-                          {bio.length}/500
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Save button and success message */}
-                  {hasChanges && (
-                    <button
-                      className={styles.settingsPage__saveButton}
-                      onClick={handleSavePrivacy}
-                      disabled={isSaving}
-                    >
-                      {isSaving ? 'Guardando...' : 'Guardar cambios'}
-                    </button>
-                  )}
-
-                  {isSuccess && !hasChanges && (
-                    <div className={styles.settingsPage__success}>
-                      <Check size={18} />
-                      Configuración guardada
-                    </div>
-                  )}
-
-                  {/* Preview link */}
-                  {isPublicProfile && user && (
-                    <Link href={`/user/${user.id}`} className={styles.settingsPage__previewLink}>
-                      <ExternalLink size={16} />
-                      Ver mi perfil público
-                    </Link>
-                  )}
-                </div>
-              </div>
-
-              {/* Account Security Card */}
-              <div className={styles.settingsPage__card}>
-                <div className={styles.settingsPage__cardHeader}>
-                  <h2>
-                    <Lock size={20} />
-                    Cuenta y Seguridad
-                  </h2>
-                </div>
-
-                <div className={styles.settingsPage__cardBody}>
-                  <div className={styles.settingsPage__toggleItem}>
-                    <div className={styles.settingsPage__toggleInfo}>
-                      <span className={styles.settingsPage__toggleLabel}>Cambiar contraseña</span>
-                      <p className={styles.settingsPage__toggleDescription}>
-                        Actualiza tu contraseña para mantener tu cuenta segura
-                      </p>
-                    </div>
-                    <Link href="/profile" className={styles.settingsPage__previewLink} style={{ marginTop: 0 }}>
-                      Ir a perfil
-                    </Link>
-                  </div>
-                </div>
-              </div>
-
-              {/* Appearance Card - Placeholder for future */}
+              {/* Appearance Card */}
               <div className={styles.settingsPage__card}>
                 <div className={styles.settingsPage__cardHeader}>
                   <h2>
@@ -426,13 +208,50 @@ export function SettingsPage() {
                     <div className={styles.settingsPage__toggleInfo}>
                       <span className={styles.settingsPage__toggleLabel}>Tema</span>
                       <p className={styles.settingsPage__toggleDescription}>
-                        El tema se configura automáticamente según las preferencias del sistema
+                        Elige cómo quieres que se vea la aplicación
                       </p>
                     </div>
-                    <span style={{ color: 'var(--text-tertiary)', fontSize: '14px' }}>
-                      Oscuro
-                    </span>
                   </div>
+
+                  {/* Theme selector buttons */}
+                  <div className={styles.settingsPage__themeSelector}>
+                    <button
+                      type="button"
+                      className={`${styles.settingsPage__themeOption} ${themePreference === 'auto' ? styles['settingsPage__themeOption--active'] : ''}`}
+                      onClick={() => setThemePreference('auto')}
+                    >
+                      <Monitor size={20} />
+                      <span className={styles.settingsPage__themeOptionLabel}>Automático</span>
+                      <span className={styles.settingsPage__themeOptionDesc}>Según tu dispositivo</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`${styles.settingsPage__themeOption} ${themePreference === 'light' ? styles['settingsPage__themeOption--active'] : ''}`}
+                      onClick={() => setThemePreference('light')}
+                    >
+                      <Sun size={20} />
+                      <span className={styles.settingsPage__themeOptionLabel}>Claro</span>
+                      <span className={styles.settingsPage__themeOptionDesc}>Tema claro siempre</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`${styles.settingsPage__themeOption} ${themePreference === 'dark' ? styles['settingsPage__themeOption--active'] : ''}`}
+                      onClick={() => setThemePreference('dark')}
+                    >
+                      <Moon size={20} />
+                      <span className={styles.settingsPage__themeOptionLabel}>Oscuro</span>
+                      <span className={styles.settingsPage__themeOptionDesc}>Tema oscuro siempre</span>
+                    </button>
+                  </div>
+
+                  {/* Current theme indicator when in auto mode */}
+                  {themePreference === 'auto' && (
+                    <p className={styles.settingsPage__themeNote}>
+                      Actualmente usando tema {theme === 'dark' ? 'oscuro' : 'claro'} según tu dispositivo
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -593,6 +412,25 @@ export function SettingsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Autoplay Toggle */}
+                  <div className={styles.settingsPage__toggleItem}>
+                    <div className={styles.settingsPage__toggleInfo}>
+                      <span className={styles.settingsPage__toggleLabel}>Reproducción automática</span>
+                      <p className={styles.settingsPage__toggleDescription}>
+                        Cuando termina un álbum o playlist, continúa automáticamente con artistas similares
+                      </p>
+                    </div>
+                    <label className={styles.settingsPage__toggle}>
+                      <input
+                        type="checkbox"
+                        className={styles.settingsPage__toggleInput}
+                        checked={autoplay.enabled}
+                        onChange={(e) => setAutoplayEnabled(e.target.checked)}
+                      />
+                      <span className={styles.settingsPage__toggleSlider}></span>
+                    </label>
+                  </div>
                 </div>
               </div>
             </>

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { ArrowRight, User, Lock, AlertCircle } from 'lucide-react';
 import { Button, Input } from '@shared/components/ui';
 import { useAuth } from '@shared/hooks';
+import { getApiErrorMessage } from '@shared/utils/error.utils';
 import styles from './LoginPage.module.css';
 
 /**
@@ -84,8 +85,7 @@ export default function LoginPage() {
               <div className={styles.errorAlert}>
                 <AlertCircle size={20} />
                 <span>
-                  {(loginError as any)?.response?.data?.message ||
-                    'Error al iniciar sesión. Verifica tus credenciales.'}
+                  {getApiErrorMessage(loginError, 'Error al iniciar sesión. Verifica tus credenciales.')}
                 </span>
               </div>
             )}
@@ -93,8 +93,7 @@ export default function LoginPage() {
             <Input
               {...register('username')}
               type="text"
-              label="Username"
-              placeholder=""
+              label="Usuario"
               error={errors.username?.message}
               leftIcon={<User size={20} />}
               autoComplete="username"
@@ -103,8 +102,7 @@ export default function LoginPage() {
             <Input
               {...register('password')}
               type="password"
-              label="Password"
-              placeholder=""
+              label="Contraseña"
               error={errors.password?.message}
               leftIcon={<Lock size={20} />}
               autoComplete="current-password"
@@ -118,7 +116,7 @@ export default function LoginPage() {
               loading={isLoggingIn}
               rightIcon={<ArrowRight size={20} />}
             >
-              Sing In
+              Iniciar Sesión
             </Button>
           </form>
         </div>

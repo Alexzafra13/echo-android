@@ -1,5 +1,5 @@
 import { useLocation } from 'wouter';
-import { Shield, Users } from 'lucide-react';
+import { Shield, Users, User, Settings } from 'lucide-react';
 import { useClickOutside } from '@shared/hooks';
 import { getUserAvatarUrl, handleAvatarError } from '@shared/utils/avatar.utils';
 import styles from './Header.module.css';
@@ -97,7 +97,11 @@ export function UserMenu({
           className={`${styles.header__userDropdown} ${isClosing ? styles['header__userDropdown--closing'] : ''}`}
           role="menu"
         >
-          <div className={styles.header__userInfo}>
+          <button
+            className={styles.header__userInfo}
+            onClick={(e) => handleNavigate(e, `/user/${user?.id}`)}
+            role="menuitem"
+          >
             <img
               src={avatarUrl}
               alt={user?.username || 'User'}
@@ -108,24 +112,26 @@ export function UserMenu({
               <p className={styles.header__userName}>{user?.username || 'User'}</p>
               <p className={styles.header__userRole}>{user?.isAdmin ? 'admin' : 'user'}</p>
             </div>
-          </div>
+          </button>
 
           <button
             className={styles.header__userMenuItem}
             onClick={(e) => handleNavigate(e, '/profile')}
             role="menuitem"
           >
-            Profile
+            <User size={16} />
+            Perfil
           </button>
           <button
             className={styles.header__userMenuItem}
             onClick={(e) => handleNavigate(e, '/settings')}
             role="menuitem"
           >
-            Settings
+            <Settings size={16} />
+            Ajustes
           </button>
           <button
-            className={styles.header__userMenuItem}
+            className={`${styles.header__userMenuItem} ${styles['header__userMenuItem--mobileOnly']}`}
             onClick={(e) => handleNavigate(e, '/social')}
             role="menuitem"
           >
@@ -135,7 +141,7 @@ export function UserMenu({
 
           {user?.isAdmin && (
             <button
-              className={styles.header__userMenuItem}
+              className={`${styles.header__userMenuItem} ${styles['header__userMenuItem--mobileOnly']}`}
               onClick={(e) => handleNavigate(e, '/admin')}
               role="menuitem"
             >
@@ -151,7 +157,7 @@ export function UserMenu({
             onClick={handleLogout}
             role="menuitem"
           >
-            Logout
+            Cerrar sesión
           </button>
         </div>
       )}

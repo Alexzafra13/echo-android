@@ -14,6 +14,7 @@ import { extractDominantColor } from '@shared/utils/colorExtractor';
 import { getCoverUrl, handleImageError } from '@shared/utils/cover.utils';
 import { getArtistImageUrl, useAlbumCoverMetadata, getAlbumCoverUrl, useArtistImages } from '../../hooks';
 import { logger } from '@shared/utils/logger';
+import { downloadService } from '@shared/services/download.service';
 import styles from './AlbumPage.module.css';
 
 /**
@@ -29,7 +30,7 @@ export default function AlbumPage() {
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isCoverSelectorOpen, setIsCoverSelectorOpen] = useState(false);
   const [coverDimensions, setCoverDimensions] = useState<{ width: number; height: number } | null>(null);
-  const { playQueue, currentTrack, isShuffle, toggleShuffle } = usePlayer();
+  const { playQueue, currentTrack, setShuffle } = usePlayer();
 
   // Real-time synchronization via WebSocket for album cover
   useAlbumMetadataSync(id);
@@ -78,9 +79,9 @@ export default function AlbumPage() {
   // Extract dominant color from album cover
   useEffect(() => {
     if (coverUrl) {
-      extractDominantColor(coverUrl).then(color => {
-        setDominantColor(color);
-      });
+      extractDominantColor(coverUrl)
+        .then(color => setDominantColor(color))
+        .catch(() => {/* Color extraction failed, use default */});
     }
   }, [coverUrl]);
 
@@ -143,6 +144,8 @@ export default function AlbumPage() {
 
   const handlePlayAll = () => {
     if (!tracks || tracks.length === 0) return;
+    // Disable shuffle mode for ordered playback
+    setShuffle(false);
     const playerTracks = convertToPlayerTracks(tracks);
     playQueue(playerTracks, 0);
   };
@@ -150,14 +153,16 @@ export default function AlbumPage() {
   const handleShufflePlay = () => {
     if (!tracks || tracks.length === 0) return;
     const playerTracks = convertToPlayerTracks(tracks);
-    // Activate shuffle mode if not already active
-    if (!isShuffle) {
-      toggleShuffle();
+    // Enable shuffle mode
+    setShuffle(true);
+    // Shuffle the tracks array using Fisher-Yates algorithm
+    // This ensures true random order - navigation will advance sequentially through shuffled queue
+    const shuffledTracks = [...playerTracks];
+    for (let i = shuffledTracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
     }
-    // Start from a random track - the player's shuffle logic will handle
-    // not repeating tracks until all have been played
-    const randomStartIndex = Math.floor(Math.random() * playerTracks.length);
-    playQueue(playerTracks, randomStartIndex);
+    playQueue(shuffledTracks, 0);
   };
 
   const handleTrackPlay = (track: any) => {
@@ -176,9 +181,14 @@ export default function AlbumPage() {
     logger.debug('Add album to playlist - to be implemented');
   };
 
-  const handleDownloadAlbum = () => {
-    // TODO: Implement download album
-    logger.debug('Download album - to be implemented');
+  const handleDownloadAlbum = async () => {
+    if (!album || !id) return;
+    try {
+      logger.info('Starting album download:', { albumId: id, title: album.title });
+      await downloadService.downloadAlbum(id, album.title, album.artist);
+    } catch (error) {
+      logger.error('Failed to download album:', error);
+    }
   };
 
   const handleChangeCover = () => {
@@ -353,7 +363,7 @@ export default function AlbumPage() {
                     cover={otherAlbum.coverImage}
                     title={otherAlbum.title}
                     artist={otherAlbum.artist}
-                    onClick={() => setLocation(`/albums/${otherAlbum.id}`)}
+                    onClick={() => setLocation(`/album/${otherAlbum.id}`)}
                   />
                 ))}
               </div>

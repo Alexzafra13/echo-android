@@ -1,1 +1,0 @@
-export { DailyRedirect } from './DailyRedirect';

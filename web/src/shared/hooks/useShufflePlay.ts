@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { usePlayer } from '@features/player';
 import { tracksService } from '@features/home/services/tracks.service';
+import { logger } from '@shared/utils/logger';
 import type { Track } from '@shared/types/track.types';
 
 const BATCH_SIZE = 50;
@@ -44,7 +45,7 @@ interface ShuffleState {
 }
 
 export function useShufflePlay(): UseShufflePlayReturn {
-  const { playQueue, addToQueue, queue, isShuffle, toggleShuffle } = usePlayer();
+  const { playQueue, addToQueue, queue, currentIndex, isShuffle, toggleShuffle } = usePlayer();
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
 
@@ -115,7 +116,6 @@ export function useShufflePlay(): UseShufflePlayReturn {
           // We've reached the end of the library
           if (state.seenTrackIds.size >= state.totalTracks) {
             // All tracks have been played - reset for a new cycle
-            console.log('[ShufflePlay] Completed full library cycle, resetting...');
             state.seenTrackIds.clear();
             state.seed = Math.random(); // New seed for fresh order
             state.skip = 0;
@@ -154,7 +154,9 @@ export function useShufflePlay(): UseShufflePlayReturn {
         }
       }
     } catch (error) {
-      console.error('[ShufflePlay] Error loading more:', error);
+      if (import.meta.env.DEV) {
+        logger.error('[ShufflePlay] Error loading more:', error);
+      }
     } finally {
       state.loading = false;
     }
@@ -212,7 +214,6 @@ export function useShufflePlay(): UseShufflePlayReturn {
           // Reached end of library
           if (state.seenTrackIds.size + newTracks.length >= state.totalTracks && newTracks.length < BATCH_SIZE) {
             // We've gone through all tracks - reset and get fresh ones
-            console.log('[ShufflePlay] All tracks seen, resetting for new cycle...');
             state.seenTrackIds.clear();
             currentSeed = Math.random();
             currentSkip = 0;
@@ -226,7 +227,9 @@ export function useShufflePlay(): UseShufflePlayReturn {
       }
 
       if (newTracks.length === 0) {
-        console.warn('[ShufflePlay] No tracks available');
+        if (import.meta.env.DEV) {
+          logger.warn('[ShufflePlay] No tracks available');
+        }
         return;
       }
 
@@ -250,18 +253,23 @@ export function useShufflePlay(): UseShufflePlayReturn {
       if (!isShuffle) toggleShuffle();
       playQueue(tracksToPlay, 0);
     } catch (error) {
-      console.error('[ShufflePlay] Error:', error);
+      if (import.meta.env.DEV) {
+        logger.error('[ShufflePlay] Error:', error);
+      }
     } finally {
       setIsLoading(false);
     }
   }, [isLoading, isShuffle, toggleShuffle, playQueue]);
 
-  // Auto-prefetch when queue is low
+  // Auto-prefetch when remaining tracks in queue is low
+  // Calculate how many tracks are left to play from current position
+  const remainingTracks = currentIndex >= 0 ? queue.length - currentIndex - 1 : queue.length;
+
   useEffect(() => {
-    if (shuffleRef.current.seed && hasMore && !shuffleRef.current.loading && queue.length <= PREFETCH_THRESHOLD) {
+    if (shuffleRef.current.seed && hasMore && !shuffleRef.current.loading && remainingTracks <= PREFETCH_THRESHOLD) {
       loadMoreTracks();
     }
-  }, [queue.length, hasMore, loadMoreTracks]);
+  }, [remainingTracks, hasMore, loadMoreTracks]);
 
   return { shufflePlay, isLoading, loadMoreTracks, hasMore };
 }

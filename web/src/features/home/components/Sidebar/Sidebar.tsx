@@ -22,8 +22,6 @@ export function Sidebar() {
   const [location] = useLocation();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.isAdmin === true;
-
-  // Detectar cuando el usuario llega al final de la página para mostrar mini-player
   const isMiniMode = usePageEndDetection(120);
 
   const baseNavItems = [
@@ -33,21 +31,27 @@ export function Sidebar() {
     { icon: ListMusic, label: 'Playlists', path: '/playlists' },
     { icon: Radio, label: 'Radio', path: '/radio' },
     { icon: Waves, label: 'Wave Mix', path: '/wave-mix' },
-    { icon: Users, label: 'Social', path: '/social' },
+    { icon: Users, label: 'Social', path: '/social', hiddenOnMobile: true },
   ];
 
-  // Add Admin item if user is admin
   const navItems = isAdmin
     ? [...baseNavItems, { icon: Shield, label: 'Admin', path: '/admin' }]
     : baseNavItems;
 
   const isActive = (path: string) => {
-    return location === path || location.startsWith(path + '/');
+    // Direct match or starts with path
+    if (location === path || location.startsWith(path + '/')) {
+      return true;
+    }
+    // Federated album routes should highlight Albums
+    if (path === '/albums' && location.startsWith('/federation/album/')) {
+      return true;
+    }
+    return false;
   };
 
   return (
     <aside className={styles.sidebar}>
-      {/* Logo */}
       <div className={styles.sidebar__logoContainer}>
         <img
           src="/images/logos/echo-icon-sidebar-white.png"
@@ -56,17 +60,20 @@ export function Sidebar() {
         />
       </div>
 
-      {/* Navigation */}
       <nav className={styles.sidebar__nav}>
         {navItems.map((item) => {
           const Icon = item.icon;
+          const itemClasses = [
+            styles.sidebar__navItem,
+            isActive(item.path) ? styles['sidebar__navItem--active'] : '',
+            'hiddenOnMobile' in item && item.hiddenOnMobile ? styles['sidebar__navItem--hiddenMobile'] : '',
+          ].filter(Boolean).join(' ');
+
           return (
             <Link
               key={item.path}
               href={item.path}
-              className={`${styles.sidebar__navItem} ${
-                isActive(item.path) ? styles['sidebar__navItem--active'] : ''
-              }`}
+              className={itemClasses}
             >
               <Icon size={20} className={styles.sidebar__navIcon} />
               <span className={styles.sidebar__navLabel}>{item.label}</span>
@@ -75,7 +82,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Mini Player - se muestra al final de la página */}
       <MiniPlayer isVisible={isMiniMode} />
     </aside>
   );

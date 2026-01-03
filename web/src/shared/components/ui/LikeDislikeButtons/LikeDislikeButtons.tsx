@@ -7,6 +7,7 @@ import {
   type ItemType,
   type Sentiment
 } from '@shared/services/interactions.service';
+import { logger } from '@shared/utils/logger';
 import styles from './LikeDislikeButtons.module.css';
 
 interface LikeDislikeButtonsProps {
@@ -46,7 +47,9 @@ export function LikeDislikeButtons({
         }
       } catch (error) {
         // Silently fail - item might not have interactions yet
-        console.debug('No interactions found for item:', itemId);
+        if (import.meta.env.DEV) {
+          logger.debug('No interactions found for item:', itemId);
+        }
       }
     };
 
@@ -69,7 +72,7 @@ export function LikeDislikeButtons({
       onSentimentChange?.(newSentiment);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error toggling like:', error);
+        logger.error('Error toggling like:', error);
       }
     } finally {
       setIsLoading(false);
@@ -88,7 +91,7 @@ export function LikeDislikeButtons({
       onSentimentChange?.(newSentiment);
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error toggling dislike:', error);
+        logger.error('Error toggling dislike:', error);
       }
     } finally {
       setIsLoading(false);

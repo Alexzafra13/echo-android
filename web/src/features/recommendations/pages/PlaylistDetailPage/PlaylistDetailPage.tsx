@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRoute, useLocation } from 'wouter';
-import { Play } from 'lucide-react';
+import { Play, Shuffle } from 'lucide-react';
 import { z } from 'zod';
 import { Sidebar } from '@features/home/components';
 import { Header } from '@shared/components/layout/Header';
@@ -15,6 +15,7 @@ import type { AutoPlaylist } from '@shared/services/recommendations.service';
 import type { Track as HomeTrack } from '@features/home/types';
 import type { Track as PlayerTrack } from '@features/player/types';
 import { logger } from '@shared/utils/logger';
+import { safeSessionStorage } from '@shared/utils/safeSessionStorage';
 import styles from './PlaylistDetailPage.module.css';
 
 // Zod schema for validating playlist data from sessionStorage
@@ -61,7 +62,7 @@ const AutoPlaylistSchema = z.object({
 export function PlaylistDetailPage() {
   const [_match, _params] = useRoute('/wave-mix/:id');
   const [, setLocation] = useLocation();
-  const { playQueue, currentTrack } = usePlayer();
+  const { playQueue, currentTrack, setShuffle } = usePlayer();
   const [playlist, setPlaylist] = useState<AutoPlaylist | null>(null);
 
   // For artist playlists, get artist images for the background
@@ -71,7 +72,7 @@ export function PlaylistDetailPage() {
 
   useEffect(() => {
     // Get playlist from sessionStorage
-    const storedPlaylist = sessionStorage.getItem('currentPlaylist');
+    const storedPlaylist = safeSessionStorage.getItem('currentPlaylist');
     if (storedPlaylist) {
       try {
         const parsedData = JSON.parse(storedPlaylist);
@@ -91,8 +92,29 @@ export function PlaylistDetailPage() {
 
   const handlePlayAll = () => {
     if (!playlist || playlist.tracks.length === 0) return;
+    // Disable shuffle mode for ordered playback
+    setShuffle(false);
     const tracks = convertToPlayerTracks(playlist);
     playQueue(tracks);
+  };
+
+  const handleShufflePlay = () => {
+    if (!playlist || playlist.tracks.length === 0) return;
+
+    const playerTracks = convertToPlayerTracks(playlist);
+    if (playerTracks.length === 0) return;
+
+    // Enable shuffle mode
+    setShuffle(true);
+
+    // Shuffle the tracks array using Fisher-Yates algorithm
+    const shuffledTracks = [...playerTracks];
+    for (let i = shuffledTracks.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledTracks[i], shuffledTracks[j]] = [shuffledTracks[j], shuffledTracks[i]];
+    }
+
+    playQueue(shuffledTracks, 0);
   };
 
   const handlePlayTrack = (track: HomeTrack) => {
@@ -115,8 +137,8 @@ export function PlaylistDetailPage() {
         duration: st.track!.duration || 0,
         coverImage: st.track!.albumId ? `/api/albums/${st.track!.albumId}/cover` : undefined,
         // Audio normalization data (LUFS)
-        rgTrackGain: (st.track as any)?.rgTrackGain,
-        rgTrackPeak: (st.track as any)?.rgTrackPeak,
+        rgTrackGain: st.track!.rgTrackGain,
+        rgTrackPeak: st.track!.rgTrackPeak,
       }));
   };
 
@@ -243,10 +265,17 @@ export function PlaylistDetailPage() {
               variant="primary"
               onClick={handlePlayAll}
               disabled={tracks.length === 0}
-              className={styles.playButton}
             >
               <Play size={20} fill="currentColor" />
-              Reproducir todo
+              Reproducir
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleShufflePlay}
+              disabled={tracks.length === 0}
+            >
+              <Shuffle size={20} />
+              Aleatorio
             </Button>
           </div>
 

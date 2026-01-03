@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Play, Disc } from 'lucide-react';
+import { Play, Disc, Ghost, ChevronUp, ChevronDown } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { usePlayer } from '@features/player/context/PlayerContext';
 import { AddToPlaylistModal } from '@features/playlists/components/AddToPlaylistModal';
@@ -9,6 +9,8 @@ import { formatDuration } from '../../types';
 import { TrackOptionsMenu } from '../TrackOptionsMenu/TrackOptionsMenu';
 import { RatingStars } from '@shared/components/ui/RatingStars';
 import { LikeDislikeButtons } from '@shared/components/ui/LikeDislikeButtons';
+import { downloadService } from '@shared/services/download.service';
+import { logger } from '@shared/utils/logger';
 import styles from './TrackList.module.css';
 
 /**
@@ -39,6 +41,8 @@ interface TrackListProps {
   hideGoToAlbum?: boolean; // Hide "Go to Album" option when already in album view
   hideAlbumCover?: boolean; // Hide album cover icon when in album view (only useful in playlists)
   onRemoveFromPlaylist?: (track: Track) => void; // Handler to remove track from playlist (only in playlist view)
+  onMoveUp?: (track: Track, index: number) => void; // Handler to move track up (for playlist reordering)
+  onMoveDown?: (track: Track, index: number) => void; // Handler to move track down (for playlist reordering)
 }
 
 /**
@@ -51,7 +55,8 @@ interface TrackListProps {
  *   onTrackPlay={(track) => play(track.id)}
  * />
  */
-export function TrackList({ tracks, onTrackPlay, currentTrackId, hideGoToAlbum = false, hideAlbumCover = false, onRemoveFromPlaylist }: TrackListProps) {
+export function TrackList({ tracks, onTrackPlay, currentTrackId, hideGoToAlbum = false, hideAlbumCover = false, onRemoveFromPlaylist, onMoveUp, onMoveDown }: TrackListProps) {
+  const canReorder = !!(onMoveUp && onMoveDown);
   const [, setLocation] = useLocation();
   const { addToQueue } = usePlayer();
   const [selectedTrackForPlaylist, setSelectedTrackForPlaylist] = useState<Track | null>(null);
@@ -135,35 +140,97 @@ export function TrackList({ tracks, onTrackPlay, currentTrackId, hideGoToAlbum =
     setSelectedTrackForInfo(track);
   }, []);
 
+  const handleDownload = useCallback(async (track: Track) => {
+    try {
+      logger.info('Starting track download:', { trackId: track.id, title: track.title });
+      await downloadService.downloadTrack(track.id, `${track.title}.${track.suffix || 'mp3'}`);
+    } catch (error) {
+      logger.error('Failed to download track:', error);
+    }
+  }, []);
+
   // Helper function to render a single track row
   const renderTrackRow = (track: Track, index: number) => {
     const isPlaying = currentTrackId === track.id;
+    const isMissingTrack = track.isMissing === true;
     const coverUrl = track.albumId ? `/api/albums/${track.albumId}/cover` : '/placeholder-album.png';
     // Use playlistOrder if available (for playlists), otherwise use trackNumber
     const displayNumber = track.playlistOrder !== undefined ? track.playlistOrder : (track.trackNumber || index + 1);
 
+    // Build class names
+    const trackClasses = [
+      styles.trackList__track,
+      isPlaying ? styles['trackList__track--active'] : '',
+      isMissingTrack ? styles['trackList__track--missing'] : '',
+      canReorder ? styles['trackList__track--reorderable'] : '',
+    ].filter(Boolean).join(' ');
+
+    // Handle click - don't play if track is missing
+    const handleTrackClick = () => {
+      if (!isMissingTrack) {
+        handlePlay(track);
+      }
+    };
+
     return (
       <div
         key={track.id}
-        className={`${styles.trackList__track} ${isPlaying ? styles['trackList__track--active'] : ''}`}
-        onClick={() => handlePlay(track)}
+        className={trackClasses}
+        onClick={handleTrackClick}
+        title={isMissingTrack ? 'Archivo no disponible' : undefined}
       >
         {/* Track number / Play button container */}
         <div className={styles.trackList__numberCell}>
-          <span className={styles.trackList__trackNumber}>
-            {displayNumber}
-          </span>
-          <button
-            className={styles.trackList__playButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              handlePlay(track);
-            }}
-            aria-label={`Play ${track.title}`}
-          >
-            <Play size={16} fill="currentColor" />
-          </button>
+          {isMissingTrack ? (
+            <Ghost size={16} className={styles.trackList__ghostIcon} />
+          ) : (
+            <>
+              <span className={styles.trackList__trackNumber}>
+                {displayNumber}
+              </span>
+              <button
+                className={styles.trackList__playButton}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePlay(track);
+                }}
+                aria-label={`Play ${track.title}`}
+              >
+                <Play size={16} fill="currentColor" />
+              </button>
+            </>
+          )}
         </div>
+
+        {/* Reorder buttons (only when reordering is enabled) */}
+        {canReorder && (
+          <div className={styles.trackList__reorderButtons}>
+            <button
+              className={styles.trackList__reorderButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveUp?.(track, index);
+              }}
+              disabled={index === 0}
+              aria-label="Mover arriba"
+              title="Mover arriba"
+            >
+              <ChevronUp size={16} />
+            </button>
+            <button
+              className={styles.trackList__reorderButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveDown?.(track, index);
+              }}
+              disabled={index === tracks.length - 1}
+              aria-label="Mover abajo"
+              title="Mover abajo"
+            >
+              <ChevronDown size={16} />
+            </button>
+          </div>
+        )}
 
         {/* Track info (cover + title + artist) */}
         <div className={styles.trackList__trackInfo}>
@@ -201,23 +268,26 @@ export function TrackList({ tracks, onTrackPlay, currentTrackId, hideGoToAlbum =
         </span>
 
         {/* Rating (Like/Dislike + Stars) - Only render on desktop to avoid API rate limits */}
-        {!isMobile && (
+        {!isMobile && !isMissingTrack && (
           <div className={styles.trackList__trackRating}>
             <LikeDislikeButtons itemId={track.id} itemType="track" size={16} />
             <RatingStars itemId={track.id} itemType="track" size={14} />
           </div>
         )}
 
-        {/* Options Menu */}
-        <TrackOptionsMenu
-          track={track}
-          onAddToPlaylist={handleAddToPlaylist}
-          onAddToQueue={handleAddToQueue}
-          onGoToAlbum={hideGoToAlbum ? undefined : handleGoToAlbum}
-          onGoToArtist={handleGoToArtist}
-          onShowInfo={handleShowInfo}
-          onRemoveFromPlaylist={onRemoveFromPlaylist}
-        />
+        {/* Options Menu - hide for missing tracks */}
+        {!isMissingTrack && (
+          <TrackOptionsMenu
+            track={track}
+            onAddToPlaylist={handleAddToPlaylist}
+            onAddToQueue={handleAddToQueue}
+            onGoToAlbum={hideGoToAlbum ? undefined : handleGoToAlbum}
+            onGoToArtist={handleGoToArtist}
+            onShowInfo={handleShowInfo}
+            onRemoveFromPlaylist={onRemoveFromPlaylist}
+            onDownload={handleDownload}
+          />
+        )}
       </div>
     );
   };
@@ -243,8 +313,9 @@ export function TrackList({ tracks, onTrackPlay, currentTrackId, hideGoToAlbum =
 
   return (
     <div className={styles.trackList}>
-      <div className={styles.trackList__header}>
+      <div className={`${styles.trackList__header} ${canReorder ? styles['trackList__header--reorderable'] : ''}`}>
         <span className={styles.trackList__headerNumber}>#</span>
+        {canReorder && <span className={styles.trackList__headerReorder}>Orden</span>}
         <span className={styles.trackList__headerTitle}>Título</span>
         <span className={styles.trackList__headerFormat}>Formato</span>
         <span className={styles.trackList__headerDuration}>Duración</span>

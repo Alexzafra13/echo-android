@@ -70,3 +70,18 @@ export interface ApiSuccessResponse<T> {
   data: T;
   message?: string;
 }
+
+/**
+ * API error response data structure
+ * Used to type error responses from the API
+ */
+export interface ApiErrorData {
+  message?: string;
+  statusCode?: number;
+  error?: string;
+  /** Indicates user must change password (403 response) */
+  mustChangePassword?: boolean;
+}
+
+// Note: getApiErrorMessage is defined in @shared/utils/error.utils.ts
+// Use that version instead of duplicating here
