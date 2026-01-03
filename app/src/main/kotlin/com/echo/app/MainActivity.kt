@@ -85,7 +85,7 @@ class MainActivity : ComponentActivity() {
                     val isAuthScreen = currentRoute != null &&
                         authRoutes.any { currentRoute.startsWith(it) }
 
-                    // Main screens where we show top bar and bottom nav
+                    // Main screens where we show top bar
                     val mainRoutes = listOf(
                         EchoDestinations.HOME,
                         EchoDestinations.LIBRARY,
@@ -95,6 +95,15 @@ class MainActivity : ComponentActivity() {
                     val isMainScreen by remember(currentRoute) {
                         derivedStateOf {
                             currentRoute != null && mainRoutes.any { currentRoute == it }
+                        }
+                    }
+
+                    // Show bottom nav on all screens except auth and player
+                    val showBottomNav by remember(currentRoute) {
+                        derivedStateOf {
+                            currentRoute != null &&
+                                !isAuthScreen &&
+                                currentRoute != EchoDestinations.PLAYER
                         }
                     }
 
@@ -155,12 +164,11 @@ class MainActivity : ComponentActivity() {
                             },
                             onNextClick = {
                                 echoPlayer.seekToNext()
-                            },
-                            modifier = if (!isMainScreen) Modifier.navigationBarsPadding() else Modifier
+                            }
                         )
 
                         // Bottom Navigation
-                        if (isMainScreen) {
+                        if (showBottomNav) {
                             EchoBottomNavBar(
                                 currentRoute = currentRoute,
                                 onNavigate = { item ->

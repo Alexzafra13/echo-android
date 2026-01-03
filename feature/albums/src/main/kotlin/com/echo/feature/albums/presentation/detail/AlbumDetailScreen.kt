@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.CircularProgressIndicator
@@ -114,6 +115,8 @@ fun AlbumDetailScreen(
                 AlbumDetailContent(
                     album = album,
                     tracks = state.tracks,
+                    currentPlayingTrackId = state.currentPlayingTrackId,
+                    isPlaying = state.isPlaying,
                     paddingValues = paddingValues,
                     onPlayClick = { viewModel.playAlbum() },
                     onShuffleClick = { viewModel.shuffleAlbum() },
@@ -129,6 +132,8 @@ fun AlbumDetailScreen(
 private fun AlbumDetailContent(
     album: Album,
     tracks: List<Track>,
+    currentPlayingTrackId: String?,
+    isPlaying: Boolean,
     paddingValues: PaddingValues,
     onPlayClick: () -> Unit,
     onShuffleClick: () -> Unit,
@@ -151,9 +156,12 @@ private fun AlbumDetailContent(
 
         // Tracks
         itemsIndexed(tracks) { index, track ->
+            val isCurrentTrack = track.id == currentPlayingTrackId
             TrackItem(
                 track = track,
                 index = index + 1,
+                isCurrentlyPlaying = isCurrentTrack,
+                isPlaying = isCurrentTrack && isPlaying,
                 onClick = { onTrackClick(track) }
             )
         }
@@ -335,8 +343,13 @@ private fun AlbumHeader(
 private fun TrackItem(
     track: Track,
     index: Int,
+    isCurrentlyPlaying: Boolean,
+    isPlaying: Boolean,
     onClick: () -> Unit
 ) {
+    val trackColor = if (isCurrentlyPlaying) EchoCoral else MaterialTheme.colorScheme.onBackground
+    val subtitleColor = if (isCurrentlyPlaying) EchoCoral.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -344,13 +357,26 @@ private fun TrackItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Track number
-        Text(
-            text = index.toString(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.width(32.dp)
-        )
+        // Track number or playing indicator
+        Box(
+            modifier = Modifier.width(32.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            if (isCurrentlyPlaying) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.Pause,
+                    contentDescription = if (isPlaying) "Reproduciendo" else "Pausado",
+                    tint = EchoCoral,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else {
+                Text(
+                    text = index.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         // Track info
         Column(
@@ -361,7 +387,7 @@ private fun TrackItem(
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Medium
                 ),
-                color = MaterialTheme.colorScheme.onBackground,
+                color = trackColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -369,7 +395,7 @@ private fun TrackItem(
                 Text(
                     text = artist,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = subtitleColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -380,7 +406,7 @@ private fun TrackItem(
         Text(
             text = track.formattedDuration,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = subtitleColor
         )
 
         // More options
