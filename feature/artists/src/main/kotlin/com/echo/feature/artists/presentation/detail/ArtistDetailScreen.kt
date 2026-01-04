@@ -23,7 +23,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,10 +72,11 @@ fun ArtistDetailScreen(
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
 
-    // Detect when scrolled past the artist name in header
+    // Detect when scrolled past the artist name in header (activate slightly before)
     val showGlassBar by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex > 0
+            listState.firstVisibleItemIndex > 0 ||
+                (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset > 280)
         }
     }
 
@@ -150,10 +151,23 @@ private fun GlassTopAppBar(
             }
         },
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            Box(
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (showGlass) Color.Transparent
+                        else Color.Black.copy(alpha = 0.3f)
+                    )
+                    .clickable(onClick = onNavigateBack),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver"
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBackIosNew,
+                    contentDescription = "Volver",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         },
