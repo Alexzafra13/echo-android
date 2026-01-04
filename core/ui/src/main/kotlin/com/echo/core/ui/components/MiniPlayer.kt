@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -32,14 +33,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -48,7 +50,6 @@ import coil.compose.AsyncImage
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoGlass
 import kotlinx.coroutines.launch
-import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
 data class MiniPlayerState(
@@ -58,7 +59,9 @@ data class MiniPlayerState(
     val artistName: String = "",
     val coverUrl: String? = null,
     val progress: Float = 0f,
-    val dominantColor: Color? = null
+    val dominantColor: Color? = null,
+    val nextTrackTitle: String? = null,
+    val nextArtistName: String? = null
 )
 
 @Composable
@@ -72,7 +75,9 @@ fun MiniPlayer(
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val density = LocalDensity.current
     val swipeThreshold = 100f
+    val textAreaWidth = with(density) { 200.dp.toPx() }
 
     AnimatedVisibility(
         visible = state.isVisible,
@@ -124,8 +129,8 @@ fun MiniPlayer(
                                         if (offsetX.value < -swipeThreshold) {
                                             // Swipe left detected - animate out and trigger next
                                             offsetX.animateTo(
-                                                targetValue = -screenWidth.toPx(),
-                                                animationSpec = tween(200)
+                                                targetValue = -textAreaWidth,
+                                                animationSpec = tween(150)
                                             )
                                             onNextClick()
                                             // Reset position instantly for next track
@@ -147,7 +152,7 @@ fun MiniPlayer(
                                 onHorizontalDrag = { _, dragAmount ->
                                     scope.launch {
                                         // Only allow swiping left (negative direction)
-                                        val newOffset = (offsetX.value + dragAmount).coerceAtMost(0f)
+                                        val newOffset = (offsetX.value + dragAmount).coerceIn(-textAreaWidth, 0f)
                                         offsetX.snapTo(newOffset)
                                     }
                                 }
@@ -161,15 +166,29 @@ fun MiniPlayer(
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Album cover with track info that slides behind it
+                        // Album cover
+                        AsyncImage(
+                            model = state.coverUrl,
+                            contentDescription = state.trackTitle,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Track info area - clipped to bounds
                         Box(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .clipToBounds(),
                             contentAlignment = Alignment.CenterStart
                         ) {
-                            // Track info (moves with swipe - rendered first, so it's behind)
+                            // Current track info (slides out to the left)
                             Column(
                                 modifier = Modifier
-                                    .padding(start = 60.dp) // Space for cover
+                                    .fillMaxWidth()
                                     .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                             ) {
                                 Text(
@@ -190,15 +209,31 @@ fun MiniPlayer(
                                 )
                             }
 
-                            // Album cover (rendered on top, text slides behind it)
-                            AsyncImage(
-                                model = state.coverUrl,
-                                contentDescription = state.trackTitle,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                                contentScale = ContentScale.Crop
-                            )
+                            // Next track info (slides in from the right)
+                            if (state.nextTrackTitle != null) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .offset { IntOffset((textAreaWidth + offsetX.value).roundToInt(), 0) }
+                                ) {
+                                    Text(
+                                        text = state.nextTrackTitle,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = Color.White,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = state.nextArtistName ?: "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
