@@ -144,8 +144,8 @@ class MainActivity : ComponentActivity() {
                             // Top Bar (only on main screens)
                             if (isMainScreen) {
                                 EchoTopBar(
-                                    onSearchClick = {
-                                        navController.navigate(EchoDestinations.SEARCH)
+                                    onShuffleClick = {
+                                        echoPlayer.shuffleAll()
                                     },
                                     onNotificationsClick = {
                                         // TODO: Navigate to notifications
