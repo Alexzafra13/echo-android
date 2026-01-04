@@ -3,6 +3,7 @@ package com.echo.core.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -29,11 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkBackground
+import com.echo.core.ui.theme.EchoGlassBorder
 
 @Composable
 fun EchoTopBar(
@@ -47,29 +50,63 @@ fun EchoTopBar(
 ) {
     // Solid at top, glass effect when scrolled (like Apple Music)
     val backgroundAlpha by animateFloatAsState(
-        targetValue = if (hasScrolled) 0.85f else 1f,
-        animationSpec = tween(durationMillis = 300),
+        targetValue = if (hasScrolled) 0.75f else 1f,
+        animationSpec = tween(durationMillis = 250),
         label = "backgroundAlpha"
     )
 
-    // Solid when not scrolled, glass gradient when scrolled
-    val background = Brush.verticalGradient(
-        colors = if (hasScrolled) {
-            listOf(
-                EchoDarkBackground.copy(alpha = backgroundAlpha),
-                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.8f),
-                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.5f)
-            )
-        } else {
-            listOf(EchoDarkBackground, EchoDarkBackground)
-        }
+    val borderAlpha by animateFloatAsState(
+        targetValue = if (hasScrolled) 0.15f else 0f,
+        animationSpec = tween(durationMillis = 250),
+        label = "borderAlpha"
     )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(background)
     ) {
+        // Main background layer - solid or semi-transparent
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(EchoDarkBackground.copy(alpha = backgroundAlpha))
+        )
+
+        // Frosted glass overlay when scrolled - subtle light tint
+        if (hasScrolled) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.06f),
+                                Color.White.copy(alpha = 0.03f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        }
+
+        // Bottom border for glass effect separation
+        if (hasScrolled) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .border(
+                        width = 0.5.dp,
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                EchoGlassBorder.copy(alpha = borderAlpha)
+                            )
+                        ),
+                        shape = RoundedCornerShape(0.dp)
+                    )
+            )
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
