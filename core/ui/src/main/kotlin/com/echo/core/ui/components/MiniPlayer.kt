@@ -157,13 +157,11 @@ fun MiniPlayer(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-                            .alpha(1f - (offsetX.value.absoluteValue / 300f).coerceIn(0f, 0.5f))
                             .clickable(onClick = onPlayerClick)
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Album cover
+                        // Album cover (stays in place)
                         AsyncImage(
                             model = state.coverUrl,
                             contentDescription = state.trackTitle,
@@ -175,9 +173,12 @@ fun MiniPlayer(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Track info
+                        // Track info (moves with swipe)
                         Column(
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                                .alpha(1f - (offsetX.value.absoluteValue / 200f).coerceIn(0f, 1f))
                         ) {
                             Text(
                                 text = state.trackTitle,
@@ -197,7 +198,7 @@ fun MiniPlayer(
                             )
                         }
 
-                        // Play/Pause button only
+                        // Play/Pause button (stays in place)
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
