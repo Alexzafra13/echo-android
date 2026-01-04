@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -35,7 +34,6 @@ import com.echo.core.datastore.preferences.ThemePreferences
 import com.echo.core.media.player.EchoPlayer
 import com.echo.core.ui.components.EchoBottomNavBar
 import com.echo.core.ui.components.EchoTopBar
-import com.echo.core.ui.components.LocalScrollOffset
 import com.echo.core.ui.components.MiniPlayer
 import com.echo.core.ui.components.MiniPlayerState
 import com.echo.core.ui.theme.EchoTheme
@@ -142,39 +140,29 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Scroll offset state for header glass effect
-                    val scrollOffsetState = remember { mutableStateOf(0) }
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Main content - full screen, content scrolls behind overlays
+                        EchoNavGraph(
+                            navController = navController,
+                            serverPreferences = serverPreferences,
+                            sessionPreferences = sessionPreferences
+                        )
 
-                    // Reset scroll offset when navigating to a new screen
-                    LaunchedEffect(currentRoute) {
-                        scrollOffsetState.value = 0
-                    }
-
-                    CompositionLocalProvider(LocalScrollOffset provides scrollOffsetState) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            // Main content - full screen, content scrolls behind overlays
-                            EchoNavGraph(
-                                navController = navController,
-                                serverPreferences = serverPreferences,
-                                sessionPreferences = sessionPreferences
+                        // Floating overlay at top (TopBar)
+                        if (isMainScreen) {
+                            EchoTopBar(
+                                onShuffleClick = {
+                                    echoPlayer.shuffleAll()
+                                },
+                                onNotificationsClick = {
+                                    // TODO: Navigate to notifications
+                                },
+                                onProfileClick = {
+                                    navController.navigate(EchoDestinations.PROFILE)
+                                },
+                                modifier = Modifier.align(Alignment.TopCenter)
                             )
-
-                            // Floating overlay at top (TopBar)
-                            if (isMainScreen) {
-                                EchoTopBar(
-                                    onShuffleClick = {
-                                        echoPlayer.shuffleAll()
-                                    },
-                                    onNotificationsClick = {
-                                        // TODO: Navigate to notifications
-                                    },
-                                    onProfileClick = {
-                                        navController.navigate(EchoDestinations.PROFILE)
-                                    },
-                                    scrollOffset = scrollOffsetState.value,
-                                    modifier = Modifier.align(Alignment.TopCenter)
-                                )
-                            }
+                        }
 
                         // Floating overlay at bottom (MiniPlayer + BottomNav)
                         Column(
@@ -228,7 +216,6 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.navigationBarsPadding()
                                 )
                             }
-                        }
                         }
                     }
                 }
