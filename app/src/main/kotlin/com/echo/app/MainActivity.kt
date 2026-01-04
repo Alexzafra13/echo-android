@@ -138,82 +138,90 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        // Top Bar (only on main screens)
-                        if (isMainScreen) {
-                            EchoTopBar(
-                                onSearchClick = {
-                                    navController.navigate(EchoDestinations.SEARCH)
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Main content
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            // Top Bar (only on main screens)
+                            if (isMainScreen) {
+                                EchoTopBar(
+                                    onSearchClick = {
+                                        navController.navigate(EchoDestinations.SEARCH)
+                                    },
+                                    onNotificationsClick = {
+                                        // TODO: Navigate to notifications
+                                    },
+                                    onProfileClick = {
+                                        navController.navigate(EchoDestinations.PROFILE)
+                                    }
+                                )
+                            }
+
+                            // Navigation content
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxSize()
+                            ) {
+                                EchoNavGraph(
+                                    navController = navController,
+                                    serverPreferences = serverPreferences,
+                                    sessionPreferences = sessionPreferences
+                                )
+                            }
+                        }
+
+                        // Floating overlay at bottom (MiniPlayer + BottomNav)
+                        Column(
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        ) {
+                            // Get next track info from queue
+                            val nextTrack = if (playerState.queue.isNotEmpty() &&
+                                playerState.currentIndex < playerState.queue.size - 1) {
+                                playerState.queue.getOrNull(playerState.currentIndex + 1)
+                            } else null
+
+                            // MiniPlayer floats above bottom nav
+                            MiniPlayer(
+                                state = MiniPlayerState(
+                                    isVisible = showMiniPlayer,
+                                    isPlaying = playerState.isPlaying,
+                                    trackTitle = playerState.currentTrack?.title ?: "",
+                                    artistName = playerState.currentTrack?.artist ?: "",
+                                    coverUrl = playerState.currentTrack?.coverUrl,
+                                    progress = playerState.progress,
+                                    dominantColor = dominantColor.value,
+                                    nextTrackTitle = nextTrack?.title,
+                                    nextArtistName = nextTrack?.artist
+                                ),
+                                onPlayerClick = {
+                                    navController.navigate(EchoDestinations.PLAYER)
                                 },
-                                onNotificationsClick = {
-                                    // TODO: Navigate to notifications
+                                onPlayPauseClick = {
+                                    echoPlayer.togglePlayPause()
                                 },
-                                onProfileClick = {
-                                    navController.navigate(EchoDestinations.PROFILE)
+                                onNextClick = {
+                                    echoPlayer.seekToNext()
                                 }
                             )
-                        }
 
-                        // Main content
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxSize()
-                        ) {
-                            EchoNavGraph(
-                                navController = navController,
-                                serverPreferences = serverPreferences,
-                                sessionPreferences = sessionPreferences
-                            )
-                        }
-
-                        // Get next track info from queue
-                        val nextTrack = if (playerState.queue.isNotEmpty() &&
-                            playerState.currentIndex < playerState.queue.size - 1) {
-                            playerState.queue.getOrNull(playerState.currentIndex + 1)
-                        } else null
-
-                        // MiniPlayer above bottom nav
-                        MiniPlayer(
-                            state = MiniPlayerState(
-                                isVisible = showMiniPlayer,
-                                isPlaying = playerState.isPlaying,
-                                trackTitle = playerState.currentTrack?.title ?: "",
-                                artistName = playerState.currentTrack?.artist ?: "",
-                                coverUrl = playerState.currentTrack?.coverUrl,
-                                progress = playerState.progress,
-                                dominantColor = dominantColor.value,
-                                nextTrackTitle = nextTrack?.title,
-                                nextArtistName = nextTrack?.artist
-                            ),
-                            onPlayerClick = {
-                                navController.navigate(EchoDestinations.PLAYER)
-                            },
-                            onPlayPauseClick = {
-                                echoPlayer.togglePlayPause()
-                            },
-                            onNextClick = {
-                                echoPlayer.seekToNext()
-                            }
-                        )
-
-                        // Bottom Navigation
-                        if (showBottomNav) {
-                            EchoBottomNavBar(
-                                currentRoute = currentRoute,
-                                onNavigate = { item ->
-                                    navController.navigate(item.route) {
-                                        // Pop up to home, clearing the back stack
-                                        popUpTo(EchoDestinations.HOME) {
-                                            inclusive = false
-                                            saveState = isMainScreen
+                            // Bottom Navigation
+                            if (showBottomNav) {
+                                EchoBottomNavBar(
+                                    currentRoute = currentRoute,
+                                    onNavigate = { item ->
+                                        navController.navigate(item.route) {
+                                            // Pop up to home, clearing the back stack
+                                            popUpTo(EchoDestinations.HOME) {
+                                                inclusive = false
+                                                saveState = isMainScreen
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = isMainScreen
                                         }
-                                        launchSingleTop = true
-                                        restoreState = isMainScreen
-                                    }
-                                },
-                                modifier = Modifier.navigationBarsPadding()
-                            )
+                                    },
+                                    modifier = Modifier.navigationBarsPadding()
+                                )
+                            }
                         }
                     }
                 }
