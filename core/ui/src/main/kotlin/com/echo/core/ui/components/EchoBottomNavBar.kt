@@ -17,10 +17,12 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.LibraryMusic
 import androidx.compose.material.icons.outlined.Radio
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -57,6 +59,13 @@ sealed class BottomNavItem(
         unselectedIcon = Icons.Outlined.LibraryMusic
     )
 
+    data object Search : BottomNavItem(
+        route = "search",
+        title = "Buscar",
+        selectedIcon = Icons.Filled.Search,
+        unselectedIcon = Icons.Outlined.Search
+    )
+
     data object Radio : BottomNavItem(
         route = "radio",
         title = "Radio",
@@ -75,6 +84,7 @@ sealed class BottomNavItem(
 val bottomNavItems = listOf(
     BottomNavItem.Home,
     BottomNavItem.Library,
+    BottomNavItem.Search,
     BottomNavItem.Radio,
     BottomNavItem.Social
 )

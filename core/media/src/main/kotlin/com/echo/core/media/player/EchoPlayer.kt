@@ -203,6 +203,22 @@ class EchoPlayer @Inject constructor(
         exoPlayer.shuffleModeEnabled = !exoPlayer.shuffleModeEnabled
     }
 
+    fun shuffleAll() {
+        // Enable shuffle mode and restart from beginning if there's a queue
+        if (currentQueue.isNotEmpty()) {
+            exoPlayer.shuffleModeEnabled = true
+            exoPlayer.seekTo(0, 0)
+            exoPlayer.play()
+        }
+    }
+
+    fun playTracksShuffled(tracks: List<PlayableTrack>) {
+        if (tracks.isEmpty()) return
+        val shuffled = tracks.shuffled()
+        playTracks(shuffled, 0)
+        exoPlayer.shuffleModeEnabled = true
+    }
+
     fun playTrack(track: PlayableTrack) {
         playTracks(listOf(track), 0)
     }
