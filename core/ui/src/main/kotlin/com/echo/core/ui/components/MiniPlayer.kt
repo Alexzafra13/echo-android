@@ -92,33 +92,28 @@ fun MiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
-            // Background that matches the app's dark background
-            val appBackground = Color(0xFF0F172A)
-
-            // Dynamic gradient background based on album art color
+            // Dynamic gradient background based on album art color - no borders, just fades
             val gradientBackground = state.dominantColor?.let { dominantColor ->
                 Brush.horizontalGradient(
                     colors = listOf(
-                        dominantColor.copy(alpha = 0.6f),
-                        dominantColor.copy(alpha = 0.3f),
-                        appBackground
+                        dominantColor.copy(alpha = 0.55f),
+                        dominantColor.copy(alpha = 0.2f),
+                        Color.Transparent
                     )
                 )
             } ?: Brush.horizontalGradient(
                 colors = listOf(
-                    Color(0xFF1E293B),
-                    appBackground
+                    Color(0xFF1E293B).copy(alpha = 0.5f),
+                    Color.Transparent
                 )
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(appBackground)
                     .background(gradientBackground)
+                    .padding(horizontal = 8.dp)
             ) {
                 // Player content with swipe gesture
                 Box(
