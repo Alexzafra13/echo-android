@@ -1,7 +1,5 @@
 package com.echo.core.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -24,7 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,38 +39,21 @@ fun EchoTopBar(
     onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
-    scrollOffset: Int = 0,
     notificationCount: Int = 0,
     profileImageUrl: String? = null
 ) {
-    // Animate alpha based on scroll - opaque at top, glass effect when scrolling
-    val scrollThreshold = 50
-    val targetAlpha = if (scrollOffset > scrollThreshold) 0.75f else 1f
-    val animatedAlpha by animateFloatAsState(
-        targetValue = targetAlpha,
-        animationSpec = tween(durationMillis = 200),
-        label = "headerAlpha"
+    // Subtle glass effect - semi-transparent gradient
+    val glassGradient = Brush.verticalGradient(
+        colors = listOf(
+            EchoDarkBackground.copy(alpha = 0.92f),
+            EchoDarkBackground.copy(alpha = 0.85f)
+        )
     )
-
-    // Background: solid when at top, gradient glass when scrolled
-    val background = if (animatedAlpha >= 0.99f) {
-        Brush.verticalGradient(
-            colors = listOf(EchoDarkBackground, EchoDarkBackground)
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                EchoDarkBackground.copy(alpha = animatedAlpha + 0.1f),
-                EchoDarkBackground.copy(alpha = animatedAlpha),
-                EchoDarkBackground.copy(alpha = animatedAlpha - 0.1f)
-            )
-        )
-    }
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(background)
+            .background(glassGradient)
             .statusBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
