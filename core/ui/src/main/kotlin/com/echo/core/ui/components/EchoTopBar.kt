@@ -34,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkBackground
-import com.echo.core.ui.theme.EchoDarkSurfaceVariant
 
 @Composable
 fun EchoTopBar(
@@ -46,29 +45,25 @@ fun EchoTopBar(
     notificationCount: Int = 0,
     profileImageUrl: String? = null
 ) {
-    // Animate opacity based on scroll state
-    // Solid at top, glass effect when scrolled
+    // Solid at top, glass effect when scrolled (like Apple Music)
     val backgroundAlpha by animateFloatAsState(
         targetValue = if (hasScrolled) 0.85f else 1f,
         animationSpec = tween(durationMillis = 300),
         label = "backgroundAlpha"
     )
 
-    // When solid (not scrolled): full opacity
-    // When glass (scrolled): gradient that fades, allowing content to show through
-    val background = if (hasScrolled) {
-        Brush.verticalGradient(
-            colors = listOf(
+    // Solid when not scrolled, glass gradient when scrolled
+    val background = Brush.verticalGradient(
+        colors = if (hasScrolled) {
+            listOf(
                 EchoDarkBackground.copy(alpha = backgroundAlpha),
-                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.9f),
-                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.7f)
+                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.8f),
+                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.5f)
             )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(EchoDarkBackground, EchoDarkBackground)
-        )
-    }
+        } else {
+            listOf(EchoDarkBackground, EchoDarkBackground)
+        }
+    )
 
     Box(
         modifier = modifier
@@ -86,7 +81,7 @@ fun EchoTopBar(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .background(EchoCoral.copy(alpha = 0.15f))
+                    .background(EchoCoral.copy(alpha = 0.2f))
                     .clickable(onClick = onShuffleClick)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
@@ -140,7 +135,7 @@ fun EchoTopBar(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(EchoDarkSurfaceVariant, CircleShape),
+                            .background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
