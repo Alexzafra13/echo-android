@@ -167,6 +167,12 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
+                        // Get next track info from queue
+                        val nextTrack = if (playerState.queue.isNotEmpty() &&
+                            playerState.currentIndex < playerState.queue.size - 1) {
+                            playerState.queue.getOrNull(playerState.currentIndex + 1)
+                        } else null
+
                         // MiniPlayer above bottom nav
                         MiniPlayer(
                             state = MiniPlayerState(
@@ -176,7 +182,9 @@ class MainActivity : ComponentActivity() {
                                 artistName = playerState.currentTrack?.artist ?: "",
                                 coverUrl = playerState.currentTrack?.coverUrl,
                                 progress = playerState.progress,
-                                dominantColor = dominantColor.value
+                                dominantColor = dominantColor.value,
+                                nextTrackTitle = nextTrack?.title,
+                                nextArtistName = nextTrack?.artist
                             ),
                             onPlayerClick = {
                                 navController.navigate(EchoDestinations.PLAYER)
