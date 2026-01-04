@@ -44,7 +44,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -133,55 +132,36 @@ private fun GlassTopAppBar(
     showGlass: Boolean,
     onNavigateBack: () -> Unit
 ) {
-    Box(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Glass background when scrolled
-        if (showGlass) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(90.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
-                    )
-                    .blur(radius = 20.dp)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(90.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                    )
-            )
-        }
-
-        TopAppBar(
-            title = {
-                if (showGlass) {
-                    Text(
-                        text = artistName,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            },
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Volver"
-                    )
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent
-            )
-        )
+    val backgroundColor = if (showGlass) {
+        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+    } else {
+        Color.Transparent
     }
+
+    TopAppBar(
+        title = {
+            if (showGlass) {
+                Text(
+                    text = artistName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Volver"
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = backgroundColor
+        )
+    )
 }
 
 @Composable
@@ -425,26 +405,12 @@ private fun ArtistBiography(biography: String) {
                 }
             )
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Biografía",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            if (needsExpansion) {
-                Text(
-                    text = if (isExpanded) "Ver menos" else "Ver más",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = EchoCoral,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
+        Text(
+            text = "Biografía",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = biography,
@@ -454,6 +420,15 @@ private fun ArtistBiography(biography: String) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.animateContentSize()
         )
+        if (needsExpansion) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (isExpanded) "Ver menos" else "Ver más",
+                style = MaterialTheme.typography.bodySmall,
+                color = EchoCoral,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
