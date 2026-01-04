@@ -64,7 +64,7 @@ fun HomeScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 100.dp)
+                contentPadding = PaddingValues(top = 72.dp, bottom = 100.dp)
             ) {
                 // Hero Section
                 state.featuredAlbum?.let { album ->

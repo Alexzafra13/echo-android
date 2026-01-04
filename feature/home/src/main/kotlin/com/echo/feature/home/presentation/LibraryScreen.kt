@@ -84,7 +84,9 @@ fun LibraryScreen(
     val tabs = listOf("Albums", "Artistas", "Playlists")
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 72.dp)
     ) {
         // Header
         Text(

@@ -43,12 +43,12 @@ fun EchoTopBar(
     notificationCount: Int = 0,
     profileImageUrl: String? = null
 ) {
-    // Glass effect gradient - semi-transparent
+    // Glass effect gradient - semi-transparent (more transparent at bottom)
     val glassGradient = Brush.verticalGradient(
         colors = listOf(
-            EchoDarkBackground.copy(alpha = 0.95f),
             EchoDarkBackground.copy(alpha = 0.88f),
-            EchoDarkBackground.copy(alpha = 0.75f)
+            EchoDarkBackground.copy(alpha = 0.78f),
+            EchoDarkBackground.copy(alpha = 0.70f)
         )
     )
 
