@@ -243,47 +243,27 @@ private fun ArtistHeader(artist: Artist) {
 
 @Composable
 private fun ArtistStats(artist: Artist, albums: List<ArtistAlbum>) {
-    // Calculate total tracks from albums
-    val totalTracks = albums.sumOf { it.trackCount }
+    // Build stats string: "4 álbumes • 53 canciones • 18 reproducciones • 1 oyente"
+    val stats = buildList {
+        add("${artist.albumCount} álbumes")
+        add("${artist.trackCount} canciones")
+        if (artist.playCount > 0) {
+            add("${artist.playCount} reproducciones")
+        }
+        if (artist.listenerCount > 0) {
+            add("${artist.listenerCount} ${if (artist.listenerCount == 1) "oyente" else "oyentes"}")
+        }
+    }
 
-    Row(
+    Text(
+        text = stats.joinToString(" • "),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        StatItem(
-            value = albums.size.toString(),
-            label = "Álbumes"
-        )
-        StatItem(
-            value = totalTracks.toString(),
-            label = "Canciones"
-        )
-    }
-}
-
-@Composable
-private fun StatItem(
-    value: String,
-    label: String
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold
-            ),
-            color = EchoCoral
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        textAlign = TextAlign.Center
+    )
 }
 
 @Composable

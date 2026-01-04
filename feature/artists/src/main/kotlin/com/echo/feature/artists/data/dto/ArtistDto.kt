@@ -9,6 +9,8 @@ data class ArtistDto(
     val imageUrl: String? = null,
     val albumCount: Int? = null,
     val trackCount: Int? = null,
+    val playCount: Int? = null,
+    val listenerCount: Int? = null,
     val biography: String? = null
 )
 

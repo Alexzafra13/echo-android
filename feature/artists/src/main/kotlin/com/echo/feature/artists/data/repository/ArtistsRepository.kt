@@ -44,7 +44,9 @@ class ArtistsRepository @Inject constructor(
             backgroundUrl = buildImageUrl(baseUrl, id, "background"),
             biography = biography,
             albumCount = albumCount ?: 0,
-            trackCount = trackCount ?: 0
+            trackCount = trackCount ?: 0,
+            playCount = playCount ?: 0,
+            listenerCount = listenerCount ?: 0
         )
     }
 

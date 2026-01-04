@@ -7,7 +7,9 @@ data class Artist(
     val backgroundUrl: String? = null,
     val biography: String? = null,
     val albumCount: Int = 0,
-    val trackCount: Int = 0
+    val trackCount: Int = 0,
+    val playCount: Int = 0,
+    val listenerCount: Int = 0
 )
 
 data class ArtistAlbum(
