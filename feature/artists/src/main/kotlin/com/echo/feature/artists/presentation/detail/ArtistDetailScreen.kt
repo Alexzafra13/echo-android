@@ -72,11 +72,10 @@ fun ArtistDetailScreen(
     val state by viewModel.state.collectAsState()
     val listState = rememberLazyListState()
 
-    // Detect when scrolled past the header (first item)
+    // Detect when scrolled past the artist name in header
     val showGlassBar by remember {
         derivedStateOf {
-            listState.firstVisibleItemIndex > 0 ||
-                (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset > 300)
+            listState.firstVisibleItemIndex > 0
         }
     }
 
@@ -143,8 +142,8 @@ private fun GlassTopAppBar(
             if (showGlass) {
                 Text(
                     text = artistName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
