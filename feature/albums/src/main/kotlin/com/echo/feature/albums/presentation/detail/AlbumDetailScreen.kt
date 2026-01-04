@@ -223,11 +223,13 @@ private fun AlbumHeader(
             .fillMaxWidth()
             .height(400.dp)
     ) {
-        // Background: Try artist fanart first, fallback to blurred album cover
+        // Background: Try artist fanart first (blurred), fallback to blurred album cover
         SubcomposeAsyncImage(
             model = artistBackgroundUrl,
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .blur(radius = 20.dp),
             contentScale = ContentScale.Crop
         ) {
             val state = painter.state
