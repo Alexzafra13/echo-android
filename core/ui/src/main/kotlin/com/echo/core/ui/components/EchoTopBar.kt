@@ -30,10 +30,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.echo.core.ui.theme.EchoCoral
+import com.echo.core.ui.theme.EchoDarkBackground
 import com.echo.core.ui.theme.EchoDarkSurfaceVariant
-
-// Same dark color as bottom nav for consistency
-private val HeaderBackground = Color(0xFF0F172A)
 
 @Composable
 fun EchoTopBar(
@@ -47,7 +45,7 @@ fun EchoTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(HeaderBackground)
+            .background(EchoDarkBackground)
             .statusBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically

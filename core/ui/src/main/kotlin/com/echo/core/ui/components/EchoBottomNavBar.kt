@@ -31,12 +31,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echo.core.ui.theme.EchoCoral
+import com.echo.core.ui.theme.EchoDarkBackground
 
 sealed class BottomNavItem(
     val route: String,
@@ -94,13 +94,10 @@ fun EchoBottomNavBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // App's dark background color - fully opaque
-    val appBackground = Color(0xFF0F172A)
-
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(appBackground)
+            .background(EchoDarkBackground)
     ) {
         Row(
             modifier = Modifier
