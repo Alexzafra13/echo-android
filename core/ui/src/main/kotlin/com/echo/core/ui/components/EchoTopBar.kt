@@ -1,5 +1,7 @@
 package com.echo.core.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -22,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,21 +42,39 @@ fun EchoTopBar(
     onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
     modifier: Modifier = Modifier,
+    hasScrolled: Boolean = false,
     notificationCount: Int = 0,
     profileImageUrl: String? = null
 ) {
-    // Subtle glass effect - semi-transparent gradient
-    val glassGradient = Brush.verticalGradient(
-        colors = listOf(
-            EchoDarkBackground.copy(alpha = 0.92f),
-            EchoDarkBackground.copy(alpha = 0.85f)
-        )
+    // Animate background color based on scroll state
+    val topAlpha by animateColorAsState(
+        targetValue = if (hasScrolled) {
+            EchoDarkBackground.copy(alpha = 0.88f)
+        } else {
+            EchoDarkBackground
+        },
+        animationSpec = tween(durationMillis = 250),
+        label = "topAlpha"
+    )
+
+    val bottomAlpha by animateColorAsState(
+        targetValue = if (hasScrolled) {
+            EchoDarkBackground.copy(alpha = 0.75f)
+        } else {
+            EchoDarkBackground
+        },
+        animationSpec = tween(durationMillis = 250),
+        label = "bottomAlpha"
+    )
+
+    val background = Brush.verticalGradient(
+        colors = listOf(topAlpha, bottomAlpha)
     )
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(glassGradient)
+            .background(background)
             .statusBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
