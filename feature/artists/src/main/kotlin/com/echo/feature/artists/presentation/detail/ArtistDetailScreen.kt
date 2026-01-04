@@ -1,5 +1,6 @@
 package com.echo.feature.artists.presentation.detail
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -35,9 +37,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -64,31 +71,21 @@ fun ArtistDetailScreen(
     viewModel: ArtistDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
+    val listState = rememberLazyListState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
-                )
-            )
+    // Detect when scrolled past the header (first item)
+    val showGlassBar by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 ||
+                (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset > 300)
         }
-    ) { paddingValues ->
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
         when {
             state.isLoading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = EchoCoral)
@@ -96,9 +93,7 @@ fun ArtistDetailScreen(
             }
             state.error != null -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -114,13 +109,78 @@ fun ArtistDetailScreen(
                         albums = state.albums,
                         topTracks = state.topTracks,
                         relatedArtists = state.relatedArtists,
-                        paddingValues = paddingValues,
+                        listState = listState,
                         onAlbumClick = onNavigateToAlbum,
                         onArtistClick = onNavigateToArtist
                     )
                 }
             }
         }
+
+        // Glass effect TopAppBar overlay
+        GlassTopAppBar(
+            artistName = state.artist?.name ?: "",
+            showGlass = showGlassBar,
+            onNavigateBack = onNavigateBack
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GlassTopAppBar(
+    artistName: String,
+    showGlass: Boolean,
+    onNavigateBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Glass background when scrolled
+        if (showGlass) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
+                    )
+                    .blur(radius = 20.dp)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
+                    )
+            )
+        }
+
+        TopAppBar(
+            title = {
+                if (showGlass) {
+                    Text(
+                        text = artistName,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Volver"
+                    )
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent
+            )
+        )
     }
 }
 
@@ -130,12 +190,13 @@ private fun ArtistDetailContent(
     albums: List<ArtistAlbum>,
     topTracks: List<ArtistTopTrack>,
     relatedArtists: List<RelatedArtist>,
-    paddingValues: PaddingValues,
+    listState: androidx.compose.foundation.lazy.LazyListState,
     onAlbumClick: (String) -> Unit,
     onArtistClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        state = listState,
         contentPadding = PaddingValues(bottom = 100.dp)
     ) {
         // Header with artist info
@@ -350,22 +411,48 @@ private fun StatItem(
 
 @Composable
 private fun ArtistBiography(biography: String) {
+    var isExpanded by remember { mutableStateOf(false) }
+    val needsExpansion = biography.length > 200
+
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .then(
+                if (needsExpansion) {
+                    Modifier.clickable { isExpanded = !isExpanded }
+                } else {
+                    Modifier
+                }
+            )
     ) {
-        Text(
-            text = "Biografía",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Biografía",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            if (needsExpansion) {
+                Text(
+                    text = if (isExpanded) "Ver menos" else "Ver más",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = EchoCoral,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = biography,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 6,
-            overflow = TextOverflow.Ellipsis
+            maxLines = if (isExpanded) Int.MAX_VALUE else 4,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.animateContentSize()
         )
     }
 }
