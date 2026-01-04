@@ -285,7 +285,6 @@ private fun AlbumSection(
                     artist = album.artist,
                     coverUrl = album.coverUrl,
                     onClick = { onAlbumClick(album.id) },
-                    onPlayClick = { onPlayAlbum(album) },
                     modifier = Modifier.width(150.dp)
                 )
             }
