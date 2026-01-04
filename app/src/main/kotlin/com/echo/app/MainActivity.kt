@@ -94,6 +94,7 @@ class MainActivity : ComponentActivity() {
                     val mainRoutes = listOf(
                         EchoDestinations.HOME,
                         EchoDestinations.LIBRARY,
+                        EchoDestinations.SEARCH,
                         EchoDestinations.RADIO,
                         EchoDestinations.SOCIAL
                     )
@@ -139,35 +140,27 @@ class MainActivity : ComponentActivity() {
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {
-                        // Main content
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Top Bar (only on main screens)
-                            if (isMainScreen) {
-                                EchoTopBar(
-                                    onShuffleClick = {
-                                        echoPlayer.shuffleAll()
-                                    },
-                                    onNotificationsClick = {
-                                        // TODO: Navigate to notifications
-                                    },
-                                    onProfileClick = {
-                                        navController.navigate(EchoDestinations.PROFILE)
-                                    }
-                                )
-                            }
+                        // Main content - full screen, content scrolls behind overlays
+                        EchoNavGraph(
+                            navController = navController,
+                            serverPreferences = serverPreferences,
+                            sessionPreferences = sessionPreferences
+                        )
 
-                            // Navigation content
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxSize()
-                            ) {
-                                EchoNavGraph(
-                                    navController = navController,
-                                    serverPreferences = serverPreferences,
-                                    sessionPreferences = sessionPreferences
-                                )
-                            }
+                        // Floating overlay at top (TopBar)
+                        if (isMainScreen) {
+                            EchoTopBar(
+                                onShuffleClick = {
+                                    echoPlayer.shuffleAll()
+                                },
+                                onNotificationsClick = {
+                                    // TODO: Navigate to notifications
+                                },
+                                onProfileClick = {
+                                    navController.navigate(EchoDestinations.PROFILE)
+                                },
+                                modifier = Modifier.align(Alignment.TopCenter)
+                            )
                         }
 
                         // Floating overlay at bottom (MiniPlayer + BottomNav)

@@ -73,6 +73,7 @@ fun SocialScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .padding(top = 72.dp)
     ) {
         // Header
         Text(

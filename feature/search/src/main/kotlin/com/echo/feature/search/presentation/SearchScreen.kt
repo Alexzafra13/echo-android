@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MusicNote
@@ -65,30 +63,17 @@ fun SearchScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
+            .padding(top = 72.dp)
     ) {
-        // Search Bar with back button
-        Row(
+        // Search Bar
+        SearchBar(
+            query = state.query,
+            onQueryChange = viewModel::onQueryChange,
+            onClear = viewModel::clearSearch,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 4.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            SearchBar(
-                query = state.query,
-                onQueryChange = viewModel::onQueryChange,
-                onClear = viewModel::clearSearch,
-                modifier = Modifier.weight(1f)
-            )
-        }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
