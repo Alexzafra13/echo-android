@@ -16,10 +16,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -140,7 +145,33 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
+                    // Track scroll for header glass effect
+                    var totalScrollOffset by remember { mutableFloatStateOf(0f) }
+                    val hasScrolled by remember {
+                        derivedStateOf { totalScrollOffset > 50f }
+                    }
+
+                    // Reset scroll offset when navigating to a new screen
+                    LaunchedEffect(currentRoute) {
+                        totalScrollOffset = 0f
+                    }
+
+                    val nestedScrollConnection = remember {
+                        object : NestedScrollConnection {
+                            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                                // When scrolling down (content up), available.y is negative
+                                // We want totalScrollOffset to increase when scrolling down
+                                totalScrollOffset = (totalScrollOffset - available.y).coerceAtLeast(0f)
+                                return Offset.Zero
+                            }
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(nestedScrollConnection)
+                    ) {
                         // Main content - full screen, content scrolls behind overlays
                         EchoNavGraph(
                             navController = navController,
@@ -160,6 +191,7 @@ class MainActivity : ComponentActivity() {
                                 onProfileClick = {
                                     navController.navigate(EchoDestinations.PROFILE)
                                 },
+                                hasScrolled = hasScrolled,
                                 modifier = Modifier.align(Alignment.TopCenter)
                             )
                         }
