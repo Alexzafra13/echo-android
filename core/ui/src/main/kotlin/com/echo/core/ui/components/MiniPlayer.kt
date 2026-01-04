@@ -86,13 +86,13 @@ fun MiniPlayer(
         exit = slideOutVertically(targetOffsetY = { it }),
         modifier = modifier
     ) {
-        // Gradient background from album color (like Spotify)
+        // Gradient background from album color (like Spotify) - mostly opaque with subtle transparency
         val dominantColor = state.dominantColor ?: Color(0xFF1E293B)
         val gradientBackground = Brush.horizontalGradient(
             colors = listOf(
-                dominantColor,
-                dominantColor.copy(alpha = 0.85f),
-                dominantColor.copy(red = dominantColor.red * 0.7f, green = dominantColor.green * 0.7f, blue = dominantColor.blue * 0.7f)
+                dominantColor.copy(alpha = 0.95f),
+                dominantColor.copy(alpha = 0.92f),
+                dominantColor.copy(alpha = 0.88f, red = dominantColor.red * 0.75f, green = dominantColor.green * 0.75f, blue = dominantColor.blue * 0.75f)
             )
         )
 
