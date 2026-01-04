@@ -5,9 +5,13 @@ import com.echo.core.network.api.ApiClientFactory
 import com.echo.feature.artists.data.api.ArtistsApi
 import com.echo.feature.artists.data.dto.ArtistAlbumDto
 import com.echo.feature.artists.data.dto.ArtistDto
+import com.echo.feature.artists.data.dto.ArtistTopTrackDto
+import com.echo.feature.artists.data.dto.RelatedArtistDto
 import com.echo.feature.artists.domain.model.Artist
 import com.echo.feature.artists.domain.model.ArtistAlbum
+import com.echo.feature.artists.domain.model.ArtistTopTrack
 import com.echo.feature.artists.domain.model.ArtistWithAlbums
+import com.echo.feature.artists.domain.model.RelatedArtist
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,6 +72,32 @@ class ArtistsRepository @Inject constructor(
         )
     }
 
+    private suspend fun ArtistTopTrackDto.toDomain(): ArtistTopTrack {
+        val baseUrl = getBaseUrl()
+        return ArtistTopTrack(
+            trackId = trackId,
+            title = title,
+            albumId = albumId,
+            albumName = albumName,
+            duration = duration,
+            playCount = playCount ?: 0,
+            uniqueListeners = uniqueListeners ?: 0,
+            coverUrl = albumId?.let { buildAlbumCoverUrl(baseUrl, it) }
+        )
+    }
+
+    private suspend fun RelatedArtistDto.toDomain(): RelatedArtist {
+        val baseUrl = getBaseUrl()
+        return RelatedArtist(
+            id = id,
+            name = name,
+            albumCount = albumCount ?: 0,
+            songCount = songCount ?: 0,
+            matchScore = matchScore ?: 0,
+            imageUrl = buildImageUrl(baseUrl, id, "profile")
+        )
+    }
+
     suspend fun getArtists(skip: Int = 0, take: Int = 50): Result<List<Artist>> = runCatching {
         val artists = getApi().getArtists(skip, take).data
         artists.map { it.toDomain() }
@@ -89,12 +119,34 @@ class ArtistsRepository @Inject constructor(
             null
         }
 
+        // Try to get top tracks
+        val topTrackDtos = try {
+            api.getArtistTopTracks(artistId).data
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        // Try to get related artists
+        val relatedArtistDtos = try {
+            api.getRelatedArtists(artistId).data
+        } catch (e: Exception) {
+            emptyList()
+        }
+
         val artist = artistDto.toDomain(
             playCount = stats?.totalPlays ?: 0,
             listenerCount = stats?.uniqueListeners ?: 0
         )
         val albums = albumDtos.map { it.toDomain(artistId, artist.name) }
-        ArtistWithAlbums(artist = artist, albums = albums)
+        val topTracks = topTrackDtos.map { it.toDomain() }
+        val relatedArtists = relatedArtistDtos.map { it.toDomain() }
+
+        ArtistWithAlbums(
+            artist = artist,
+            albums = albums,
+            topTracks = topTracks,
+            relatedArtists = relatedArtists
+        )
     }
 
     suspend fun getArtistAlbums(artistId: String): Result<List<ArtistAlbum>> = runCatching {

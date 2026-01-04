@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,12 +52,15 @@ import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkSurfaceVariant
 import com.echo.feature.artists.domain.model.Artist
 import com.echo.feature.artists.domain.model.ArtistAlbum
+import com.echo.feature.artists.domain.model.ArtistTopTrack
+import com.echo.feature.artists.domain.model.RelatedArtist
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArtistDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAlbum: (String) -> Unit,
+    onNavigateToArtist: (String) -> Unit = {},
     viewModel: ArtistDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsState()
@@ -108,8 +112,11 @@ fun ArtistDetailScreen(
                     ArtistDetailContent(
                         artist = artist,
                         albums = state.albums,
+                        topTracks = state.topTracks,
+                        relatedArtists = state.relatedArtists,
                         paddingValues = paddingValues,
-                        onAlbumClick = onNavigateToAlbum
+                        onAlbumClick = onNavigateToAlbum,
+                        onArtistClick = onNavigateToArtist
                     )
                 }
             }
@@ -121,8 +128,11 @@ fun ArtistDetailScreen(
 private fun ArtistDetailContent(
     artist: Artist,
     albums: List<ArtistAlbum>,
+    topTracks: List<ArtistTopTrack>,
+    relatedArtists: List<RelatedArtist>,
     paddingValues: PaddingValues,
-    onAlbumClick: (String) -> Unit
+    onAlbumClick: (String) -> Unit,
+    onArtistClick: (String) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -136,6 +146,23 @@ private fun ArtistDetailContent(
         // Stats row
         item {
             ArtistStats(artist = artist, albums = albums)
+        }
+
+        // Top Tracks section
+        if (topTracks.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Canciones Populares",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                )
+            }
+
+            item {
+                TopTracksSection(topTracks = topTracks)
+            }
         }
 
         // Albums section
@@ -154,6 +181,26 @@ private fun ArtistDetailContent(
                 AlbumsGrid(
                     albums = albums,
                     onAlbumClick = onAlbumClick
+                )
+            }
+        }
+
+        // Related Artists section
+        if (relatedArtists.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Artistas Similares",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                )
+            }
+
+            item {
+                RelatedArtistsSection(
+                    relatedArtists = relatedArtists,
+                    onArtistClick = onArtistClick
                 )
             }
         }
@@ -396,5 +443,176 @@ private fun AlbumItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun TopTracksSection(topTracks: List<ArtistTopTrack>) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        topTracks.take(5).forEachIndexed { index, track ->
+            TopTrackItem(
+                track = track,
+                position = index + 1
+            )
+        }
+    }
+}
+
+@Composable
+private fun TopTrackItem(
+    track: ArtistTopTrack,
+    position: Int
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(EchoDarkSurfaceVariant.copy(alpha = 0.5f))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Position number
+        Text(
+            text = position.toString(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(24.dp)
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Album cover
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(EchoDarkSurfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(24.dp)
+            )
+            track.coverUrl?.let {
+                AsyncImage(
+                    model = it,
+                    contentDescription = track.title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Track info
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = track.title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            track.albumName?.let { albumName ->
+                Text(
+                    text = albumName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        // Duration
+        if (track.formattedDuration.isNotEmpty()) {
+            Text(
+                text = track.formattedDuration,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun RelatedArtistsSection(
+    relatedArtists: List<RelatedArtist>,
+    onArtistClick: (String) -> Unit
+) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        items(relatedArtists) { artist ->
+            RelatedArtistItem(
+                artist = artist,
+                onClick = { onArtistClick(artist.id) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun RelatedArtistItem(
+    artist: RelatedArtist,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(100.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Circular artist image
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(EchoDarkSurfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(40.dp)
+            )
+            artist.imageUrl?.let {
+                AsyncImage(
+                    model = it,
+                    contentDescription = artist.name,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Artist name
+        Text(
+            text = artist.name,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
     }
 }
