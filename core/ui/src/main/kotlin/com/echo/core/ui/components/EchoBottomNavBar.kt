@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -94,10 +95,19 @@ fun EchoBottomNavBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // Glass effect gradient - semi-transparent
+    val glassGradient = Brush.verticalGradient(
+        colors = listOf(
+            EchoDarkBackground.copy(alpha = 0.75f),
+            EchoDarkBackground.copy(alpha = 0.88f),
+            EchoDarkBackground.copy(alpha = 0.95f)
+        )
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(EchoDarkBackground)
+            .background(glassGradient)
     ) {
         Row(
             modifier = Modifier
