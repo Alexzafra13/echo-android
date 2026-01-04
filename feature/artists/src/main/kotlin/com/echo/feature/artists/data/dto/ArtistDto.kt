@@ -29,3 +29,15 @@ data class ArtistAlbumDto(
     val duration: Int? = null,
     val genres: List<String>? = null
 )
+
+@Serializable
+data class ArtistAlbumsPageDto(
+    val data: List<ArtistAlbumDto>,
+    val total: Int? = null
+)
+
+@Serializable
+data class ArtistsSearchPageDto(
+    val data: List<ArtistDto>,
+    val total: Int? = null
+)

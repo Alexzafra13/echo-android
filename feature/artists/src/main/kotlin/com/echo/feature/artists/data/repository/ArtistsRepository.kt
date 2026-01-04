@@ -75,19 +75,19 @@ class ArtistsRepository @Inject constructor(
     suspend fun getArtistWithAlbums(artistId: String): Result<ArtistWithAlbums> = runCatching {
         val artistDto = getApi().getArtist(artistId)
         val artist = artistDto.toDomain()
-        val albumDtos = getApi().getArtistAlbums(artistId)
+        val albumDtos = getApi().getArtistAlbums(artistId).data
         val albums = albumDtos.map { it.toDomain(artistId, artist.name) }
         ArtistWithAlbums(artist = artist, albums = albums)
     }
 
     suspend fun getArtistAlbums(artistId: String): Result<List<ArtistAlbum>> = runCatching {
         val artist = getApi().getArtist(artistId)
-        val albumDtos = getApi().getArtistAlbums(artistId)
+        val albumDtos = getApi().getArtistAlbums(artistId).data
         albumDtos.map { it.toDomain(artistId, artist.name) }
     }
 
     suspend fun searchArtists(query: String, limit: Int = 20): Result<List<Artist>> = runCatching {
-        val artists = getApi().searchArtists(query, limit)
+        val artists = getApi().searchArtists(query, limit).data
         artists.map { it.toDomain() }
     }
 }

@@ -1,8 +1,9 @@
 package com.echo.feature.artists.data.api
 
-import com.echo.feature.artists.data.dto.ArtistAlbumDto
+import com.echo.feature.artists.data.dto.ArtistAlbumsPageDto
 import com.echo.feature.artists.data.dto.ArtistDto
 import com.echo.feature.artists.data.dto.ArtistsPageDto
+import com.echo.feature.artists.data.dto.ArtistsSearchPageDto
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -18,11 +19,11 @@ interface ArtistsApi {
     suspend fun searchArtists(
         @Path("query") query: String,
         @Query("limit") limit: Int = 20
-    ): List<ArtistDto>
+    ): ArtistsSearchPageDto
 
     @GET("artists/{id}")
     suspend fun getArtist(@Path("id") artistId: String): ArtistDto
 
     @GET("artists/{id}/albums")
-    suspend fun getArtistAlbums(@Path("id") artistId: String): List<ArtistAlbumDto>
+    suspend fun getArtistAlbums(@Path("id") artistId: String): ArtistAlbumsPageDto
 }
