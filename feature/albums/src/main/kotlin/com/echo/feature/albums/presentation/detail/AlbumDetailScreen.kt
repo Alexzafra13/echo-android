@@ -54,6 +54,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.feature.albums.domain.model.Album
 import com.echo.feature.albums.domain.model.Track
@@ -210,20 +212,40 @@ private fun AlbumHeader(
     onShuffleClick: () -> Unit,
     onArtistClick: () -> Unit
 ) {
+    // Build artist background URL from album cover URL base
+    val artistBackgroundUrl = album.coverUrl?.let { coverUrl ->
+        val baseUrl = coverUrl.substringBefore("/api/")
+        "$baseUrl/api/images/artists/${album.artistId}/background"
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(400.dp)
     ) {
-        // Blurred background
-        AsyncImage(
-            model = album.coverUrl,
+        // Background: Try artist fanart first, fallback to blurred album cover
+        SubcomposeAsyncImage(
+            model = artistBackgroundUrl,
             contentDescription = null,
-            modifier = Modifier
-                .fillMaxSize()
-                .blur(radius = 30.dp),
+            modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
-        )
+        ) {
+            val state = painter.state
+            if (state is coil.compose.AsyncImagePainter.State.Error ||
+                state is coil.compose.AsyncImagePainter.State.Empty) {
+                // Artist fanart not available, use blurred album cover
+                AsyncImage(
+                    model = album.coverUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(radius = 30.dp),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                SubcomposeAsyncImageContent()
+            }
+        }
 
         // Gradient overlay
         Box(
