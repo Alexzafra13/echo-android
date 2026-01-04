@@ -94,14 +94,21 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Solid background color from album art (like Spotify)
-            val backgroundColor = state.dominantColor ?: Color(0xFF1E293B)
+            // Gradient background from album color (like Spotify)
+            val dominantColor = state.dominantColor ?: Color(0xFF1E293B)
+            val gradientBackground = Brush.horizontalGradient(
+                colors = listOf(
+                    dominantColor,
+                    dominantColor.copy(alpha = 0.85f),
+                    dominantColor.copy(red = dominantColor.red * 0.7f, green = dominantColor.green * 0.7f, blue = dominantColor.blue * 0.7f)
+                )
+            )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(backgroundColor)
+                    .background(gradientBackground)
             ) {
                 // Player content with swipe gesture
                 Box(
