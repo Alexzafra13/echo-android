@@ -85,7 +85,7 @@ fun EchoBottomNavBar(
         modifier = modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface)
-            .padding(vertical = 12.dp),
+            .padding(top = 8.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -127,14 +127,14 @@ private fun NavBarItem(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 20.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
             contentDescription = item.title,
             tint = iconColor,
-            modifier = Modifier.size(26.dp)
+            modifier = Modifier.size(24.dp)
         )
 
         Text(
@@ -142,7 +142,7 @@ private fun NavBarItem(
             color = textColor,
             fontSize = 10.sp,
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 2.dp)
         )
     }
 }
