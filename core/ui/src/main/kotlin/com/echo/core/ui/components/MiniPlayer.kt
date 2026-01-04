@@ -78,17 +78,6 @@ fun MiniPlayer(
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surface)
             ) {
-                // Progress bar
-                LinearProgressIndicator(
-                    progress = { state.progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(2.dp)
-                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                    color = EchoCoral,
-                    trackColor = EchoGlass
-                )
-
                 // Player content
                 Row(
                     modifier = Modifier
@@ -171,6 +160,17 @@ fun MiniPlayer(
                         }
                     }
                 }
+
+                // Progress bar at bottom
+                LinearProgressIndicator(
+                    progress = { state.progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
+                    color = EchoCoral,
+                    trackColor = EchoGlass
+                )
             }
         }
     }
