@@ -133,38 +133,63 @@ fun PlayerScreen(
             val baseColor = dominantColor ?: MaterialTheme.colorScheme.background
             val backgroundColor = MaterialTheme.colorScheme.background
 
-            // Main gradient - more intense at the top, fading to background
+            // Base background
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(backgroundColor)
+            )
+
+            // Diagonal gradient from top-left corner - more organic feel
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
+                        Brush.linearGradient(
                             colors = listOf(
-                                baseColor.copy(alpha = 0.7f),
-                                baseColor.copy(alpha = 0.5f),
-                                baseColor.copy(alpha = 0.25f),
-                                backgroundColor.copy(alpha = 0.9f),
-                                backgroundColor
+                                baseColor.copy(alpha = 0.6f),
+                                baseColor.copy(alpha = 0.3f),
+                                Color.Transparent
                             ),
-                            startY = 0f,
-                            endY = 1200f
+                            start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            end = androidx.compose.ui.geometry.Offset(800f, 1000f)
                         )
                     )
             )
 
-            // Radial glow behind album art area
+            // Secondary blob from top-right - creates asymmetry
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(400.dp)
+                    .height(500.dp)
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                baseColor.copy(alpha = 0.35f),
+                                baseColor.copy(alpha = 0.4f),
                                 baseColor.copy(alpha = 0.15f),
                                 Color.Transparent
                             ),
-                            radius = 500f
+                            center = androidx.compose.ui.geometry.Offset(900f, 100f),
+                            radius = 600f
+                        )
+                    )
+            )
+
+            // Glow behind album art - slightly off-center
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(450.dp)
+                    .padding(top = 50.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                baseColor.copy(alpha = 0.5f),
+                                baseColor.copy(alpha = 0.2f),
+                                Color.Transparent
+                            ),
+                            center = androidx.compose.ui.geometry.Offset(500f, 350f),
+                            radius = 450f
                         )
                     )
             )
