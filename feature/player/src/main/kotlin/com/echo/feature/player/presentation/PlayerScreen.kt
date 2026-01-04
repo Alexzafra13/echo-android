@@ -133,20 +133,38 @@ fun PlayerScreen(
             val baseColor = dominantColor ?: MaterialTheme.colorScheme.background
             val backgroundColor = MaterialTheme.colorScheme.background
 
-            // Subtle gradient from dominant color at top to background at bottom
+            // Main gradient - more intense at the top, fading to background
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                baseColor.copy(alpha = 0.4f),
-                                baseColor.copy(alpha = 0.2f),
-                                backgroundColor.copy(alpha = 0.95f),
+                                baseColor.copy(alpha = 0.7f),
+                                baseColor.copy(alpha = 0.5f),
+                                baseColor.copy(alpha = 0.25f),
+                                backgroundColor.copy(alpha = 0.9f),
                                 backgroundColor
                             ),
                             startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
+                            endY = 1200f
+                        )
+                    )
+            )
+
+            // Radial glow behind album art area
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(400.dp)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                baseColor.copy(alpha = 0.35f),
+                                baseColor.copy(alpha = 0.15f),
+                                Color.Transparent
+                            ),
+                            radius = 500f
                         )
                     )
             )
@@ -160,13 +178,18 @@ fun PlayerScreen(
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Album Art
+                // Album Art with colored shadow
                 AsyncImage(
                     model = currentTrack?.coverUrl,
                     contentDescription = currentTrack?.title,
                     modifier = Modifier
                         .size(300.dp)
-                        .shadow(elevation = 32.dp, shape = RoundedCornerShape(12.dp))
+                        .shadow(
+                            elevation = 40.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            ambientColor = baseColor.copy(alpha = 0.5f),
+                            spotColor = baseColor.copy(alpha = 0.5f)
+                        )
                         .clip(RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Crop
                 )
