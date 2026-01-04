@@ -92,28 +92,23 @@ fun MiniPlayer(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            // Dynamic gradient background based on album art color - no borders, just fades
-            val gradientBackground = state.dominantColor?.let { dominantColor ->
-                Brush.horizontalGradient(
-                    colors = listOf(
-                        dominantColor.copy(alpha = 0.55f),
-                        dominantColor.copy(alpha = 0.2f),
-                        Color.Transparent
-                    )
-                )
-            } ?: Brush.horizontalGradient(
+            // Gradient background from album color (like Spotify)
+            val dominantColor = state.dominantColor ?: Color(0xFF1E293B)
+            val gradientBackground = Brush.horizontalGradient(
                 colors = listOf(
-                    Color(0xFF1E293B).copy(alpha = 0.5f),
-                    Color.Transparent
+                    dominantColor,
+                    dominantColor.copy(alpha = 0.85f),
+                    dominantColor.copy(red = dominantColor.red * 0.7f, green = dominantColor.green * 0.7f, blue = dominantColor.blue * 0.7f)
                 )
             )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
                     .background(gradientBackground)
-                    .padding(horizontal = 8.dp)
             ) {
                 // Player content with swipe gesture
                 Box(
