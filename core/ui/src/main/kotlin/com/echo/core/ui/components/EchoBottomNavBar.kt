@@ -31,7 +31,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -95,22 +94,13 @@ fun EchoBottomNavBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // App's dark background color
+    // App's dark background color - fully opaque
     val appBackground = Color(0xFF0F172A)
-
-    // Subtle glass effect - mostly opaque with slight transparency at top
-    val glassGradient = Brush.verticalGradient(
-        colors = listOf(
-            appBackground.copy(alpha = 0.82f),
-            appBackground.copy(alpha = 0.94f),
-            appBackground.copy(alpha = 0.99f)
-        )
-    )
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(glassGradient)
+            .background(appBackground)
     ) {
         Row(
             modifier = Modifier
