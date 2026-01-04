@@ -334,12 +334,12 @@ private fun AlbumHeader(
                         .height(48.dp)
                         .shadow(
                             elevation = 4.dp,
-                            shape = RoundedCornerShape(24.dp),
+                            shape = RoundedCornerShape(8.dp),
                             ambientColor = EchoCoral.copy(alpha = 0.3f),
                             spotColor = EchoCoral.copy(alpha = 0.3f)
                         )
-                        .background(EchoCoral, RoundedCornerShape(24.dp))
-                        .clip(RoundedCornerShape(24.dp))
+                        .background(EchoCoral, RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = onPlayClick),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
@@ -366,9 +366,9 @@ private fun AlbumHeader(
                         .height(48.dp)
                         .background(
                             MaterialTheme.colorScheme.surfaceVariant,
-                            RoundedCornerShape(24.dp)
+                            RoundedCornerShape(8.dp)
                         )
-                        .clip(RoundedCornerShape(24.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .clickable(onClick = onShuffleClick),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
