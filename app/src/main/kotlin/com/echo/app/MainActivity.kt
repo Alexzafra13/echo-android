@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
@@ -33,6 +36,7 @@ import com.echo.core.datastore.preferences.ThemePreferences
 import com.echo.core.media.player.EchoPlayer
 import com.echo.core.ui.components.EchoBottomNavBar
 import com.echo.core.ui.components.EchoTopBar
+import com.echo.core.ui.components.LocalScrollOffset
 import com.echo.core.ui.components.MiniPlayer
 import com.echo.core.ui.components.MiniPlayerState
 import com.echo.core.ui.theme.EchoTheme
@@ -139,29 +143,41 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        // Main content - full screen, content scrolls behind overlays
-                        EchoNavGraph(
-                            navController = navController,
-                            serverPreferences = serverPreferences,
-                            sessionPreferences = sessionPreferences
-                        )
+                    // Scroll offset state for header glass effect
+                    var scrollOffset by remember { mutableIntStateOf(0) }
 
-                        // Floating overlay at top (TopBar)
-                        if (isMainScreen) {
-                            EchoTopBar(
-                                onShuffleClick = {
-                                    echoPlayer.shuffleAll()
-                                },
-                                onNotificationsClick = {
-                                    // TODO: Navigate to notifications
-                                },
-                                onProfileClick = {
-                                    navController.navigate(EchoDestinations.PROFILE)
-                                },
-                                modifier = Modifier.align(Alignment.TopCenter)
+                    // Reset scroll offset when navigating to a new screen
+                    LaunchedEffect(currentRoute) {
+                        scrollOffset = 0
+                    }
+
+                    val scrollOffsetState = remember { mutableIntStateOf(0) }
+
+                    CompositionLocalProvider(LocalScrollOffset provides scrollOffsetState) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            // Main content - full screen, content scrolls behind overlays
+                            EchoNavGraph(
+                                navController = navController,
+                                serverPreferences = serverPreferences,
+                                sessionPreferences = sessionPreferences
                             )
-                        }
+
+                            // Floating overlay at top (TopBar)
+                            if (isMainScreen) {
+                                EchoTopBar(
+                                    onShuffleClick = {
+                                        echoPlayer.shuffleAll()
+                                    },
+                                    onNotificationsClick = {
+                                        // TODO: Navigate to notifications
+                                    },
+                                    onProfileClick = {
+                                        navController.navigate(EchoDestinations.PROFILE)
+                                    },
+                                    scrollOffset = scrollOffsetState.intValue,
+                                    modifier = Modifier.align(Alignment.TopCenter)
+                                )
+                            }
 
                         // Floating overlay at bottom (MiniPlayer + BottomNav)
                         Column(
@@ -215,6 +231,7 @@ class MainActivity : ComponentActivity() {
                                     modifier = Modifier.navigationBarsPadding()
                                 )
                             }
+                        }
                         }
                     }
                 }
