@@ -68,7 +68,7 @@ fun HomeScreen(
     }
 
     LaunchedEffect(scrollOffset) {
-        scrollOffsetState.intValue = scrollOffset
+        scrollOffsetState.value = scrollOffset
     }
 
     Box(modifier = Modifier.fillMaxSize()) {

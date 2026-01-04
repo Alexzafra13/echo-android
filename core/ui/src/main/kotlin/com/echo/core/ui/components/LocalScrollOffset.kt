@@ -1,7 +1,7 @@
 package com.echo.core.ui.components
 
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.staticCompositionLocalOf
 
 /**
@@ -9,5 +9,5 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * Screens should update this value when they scroll.
  */
 val LocalScrollOffset = staticCompositionLocalOf<MutableState<Int>> {
-    mutableIntStateOf(0)
+    mutableStateOf(0)
 }

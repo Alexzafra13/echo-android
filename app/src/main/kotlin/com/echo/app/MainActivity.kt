@@ -17,7 +17,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -144,14 +143,12 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Scroll offset state for header glass effect
-                    var scrollOffset by remember { mutableIntStateOf(0) }
+                    val scrollOffsetState = remember { mutableStateOf(0) }
 
                     // Reset scroll offset when navigating to a new screen
                     LaunchedEffect(currentRoute) {
-                        scrollOffset = 0
+                        scrollOffsetState.value = 0
                     }
-
-                    val scrollOffsetState = remember { mutableIntStateOf(0) }
 
                     CompositionLocalProvider(LocalScrollOffset provides scrollOffsetState) {
                         Box(modifier = Modifier.fillMaxSize()) {
@@ -174,7 +171,7 @@ class MainActivity : ComponentActivity() {
                                     onProfileClick = {
                                         navController.navigate(EchoDestinations.PROFILE)
                                     },
-                                    scrollOffset = scrollOffsetState.intValue,
+                                    scrollOffset = scrollOffsetState.value,
                                     modifier = Modifier.align(Alignment.TopCenter)
                                 )
                             }
