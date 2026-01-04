@@ -47,6 +47,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkSurfaceVariant
 import com.echo.feature.artists.domain.model.Artist
@@ -177,26 +179,42 @@ private fun ArtistHeader(artist: Artist) {
             .height(380.dp)
     ) {
         // Main artist image filling the entire header
+        // Try background (fanart) first, fallback to profile image
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(EchoDarkSurfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            // Fallback icon
+            // Fallback icon (shown while loading or if both images fail)
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(120.dp)
             )
-            // Artist image
-            AsyncImage(
-                model = artist.imageUrl,
+
+            // Try background image first (fanart), if it fails show profile image
+            SubcomposeAsyncImage(
+                model = artist.backgroundUrl,
                 contentDescription = artist.name,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
-            )
+            ) {
+                val state = painter.state
+                if (state is coil.compose.AsyncImagePainter.State.Error ||
+                    state is coil.compose.AsyncImagePainter.State.Empty) {
+                    // Background failed, try profile image as fallback
+                    AsyncImage(
+                        model = artist.imageUrl,
+                        contentDescription = artist.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    SubcomposeAsyncImageContent()
+                }
+            }
         }
 
         // Gradient overlay at the bottom for fade effect
