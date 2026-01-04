@@ -1,6 +1,6 @@
 package com.echo.core.ui.components
 
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -46,50 +47,43 @@ fun EchoTopBar(
     notificationCount: Int = 0,
     profileImageUrl: String? = null
 ) {
-    // Animate background color based on scroll state
-    val topAlpha by animateColorAsState(
-        targetValue = if (hasScrolled) {
-            EchoDarkBackground.copy(alpha = 0.88f)
-        } else {
-            EchoDarkBackground
-        },
-        animationSpec = tween(durationMillis = 250),
-        label = "topAlpha"
+    // Animate opacity based on scroll state
+    // Transparent at top, glass effect when scrolled
+    val backgroundAlpha by animateFloatAsState(
+        targetValue = if (hasScrolled) 0.92f else 0f,
+        animationSpec = tween(durationMillis = 300),
+        label = "backgroundAlpha"
     )
 
-    val bottomAlpha by animateColorAsState(
-        targetValue = if (hasScrolled) {
-            EchoDarkBackground.copy(alpha = 0.75f)
-        } else {
-            EchoDarkBackground
-        },
-        animationSpec = tween(durationMillis = 250),
-        label = "bottomAlpha"
-    )
-
+    // Glass effect gradient - more opaque at top, fades at bottom
     val background = Brush.verticalGradient(
-        colors = listOf(topAlpha, bottomAlpha)
+        colors = listOf(
+            EchoDarkBackground.copy(alpha = backgroundAlpha),
+            EchoDarkBackground.copy(alpha = backgroundAlpha * 0.85f),
+            EchoDarkBackground.copy(alpha = backgroundAlpha * 0.6f)
+        )
     )
 
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .background(background)
-            .statusBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        // Shuffle button with styled background
-        Box(
+        Row(
             modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(EchoCoral.copy(alpha = 0.15f))
-                .clickable(onClick = onShuffleClick)
-                .padding(horizontal = 14.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            // Shuffle button with styled background
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(EchoCoral.copy(alpha = 0.15f))
+                    .clickable(onClick = onShuffleClick)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Shuffle,
@@ -98,58 +92,58 @@ fun EchoTopBar(
                     modifier = Modifier.size(20.dp)
                 )
             }
-        }
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-        // Notifications button
-        IconButton(onClick = onNotificationsClick) {
-            BadgedBox(
-                badge = {
-                    if (notificationCount > 0) {
-                        Badge(
-                            containerColor = EchoCoral
-                        ) {
-                            Text(
-                                text = if (notificationCount > 9) "9+" else notificationCount.toString(),
-                                style = MaterialTheme.typography.labelSmall
-                            )
+            // Notifications button
+            IconButton(onClick = onNotificationsClick) {
+                BadgedBox(
+                    badge = {
+                        if (notificationCount > 0) {
+                            Badge(
+                                containerColor = EchoCoral
+                            ) {
+                                Text(
+                                    text = if (notificationCount > 9) "9+" else notificationCount.toString(),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
                         }
                     }
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notificaciones",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-
-        // Profile button
-        IconButton(onClick = onProfileClick) {
-            if (profileImageUrl != null) {
-                AsyncImage(
-                    model = profileImageUrl,
-                    contentDescription = "Perfil",
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .background(EchoDarkSurfaceVariant, CircleShape),
-                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "Perfil",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notificaciones",
+                        tint = Color.White
                     )
+                }
+            }
+
+            // Profile button
+            IconButton(onClick = onProfileClick) {
+                if (profileImageUrl != null) {
+                    AsyncImage(
+                        model = profileImageUrl,
+                        contentDescription = "Perfil",
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(EchoDarkSurfaceVariant.copy(alpha = 0.6f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = "Perfil",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
