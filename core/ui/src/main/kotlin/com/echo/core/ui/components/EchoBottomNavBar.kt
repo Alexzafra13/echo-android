@@ -3,6 +3,8 @@ package com.echo.core.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -81,23 +85,37 @@ fun EchoBottomNavBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    // Glass effect - gradient from transparent to opaque
+    val glassGradient = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF121212).copy(alpha = 0.7f),
+            Color(0xFF121212).copy(alpha = 0.92f),
+            Color(0xFF121212).copy(alpha = 0.98f)
+        )
+    )
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .padding(top = 8.dp, bottom = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
+            .background(glassGradient)
     ) {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentRoute == item.route ||
-                (item == BottomNavItem.Home && currentRoute == null)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 10.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            bottomNavItems.forEach { item ->
+                val isSelected = currentRoute == item.route ||
+                    (item == BottomNavItem.Home && currentRoute == null)
 
-            NavBarItem(
-                item = item,
-                isSelected = isSelected,
-                onClick = { onNavigate(item) }
-            )
+                NavBarItem(
+                    item = item,
+                    isSelected = isSelected,
+                    onClick = { onNavigate(item) }
+                )
+            }
         }
     }
 }

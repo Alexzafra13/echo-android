@@ -94,38 +94,27 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
-            // Base dark background color
-            val baseBackground = Color(0xFF1E1E1E)
-
-            // Dynamic gradient overlay based on album art color
-            val gradientOverlay = state.dominantColor?.let { dominantColor ->
+            // Dynamic gradient background based on album art color
+            val gradientBackground = state.dominantColor?.let { dominantColor ->
                 Brush.horizontalGradient(
                     colors = listOf(
-                        dominantColor.copy(alpha = 0.85f),
-                        dominantColor.copy(alpha = 0.5f),
-                        Color.Transparent
+                        dominantColor.copy(alpha = 0.7f),
+                        dominantColor.copy(alpha = 0.4f),
+                        Color(0xFF1A1A1A).copy(alpha = 0.85f)
                     )
                 )
-            }
+            } ?: Brush.horizontalGradient(
+                colors = listOf(
+                    Color(0xFF2A2A2A).copy(alpha = 0.9f),
+                    Color(0xFF1A1A1A).copy(alpha = 0.9f)
+                )
+            )
 
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(
-                        elevation = 8.dp,
-                        shape = RoundedCornerShape(12.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.4f),
-                        spotColor = Color.Black.copy(alpha = 0.4f)
-                    )
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(baseBackground)
-                    .then(
-                        if (gradientOverlay != null) {
-                            Modifier.background(gradientOverlay)
-                        } else {
-                            Modifier
-                        }
-                    )
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(gradientBackground)
             ) {
                 // Player content with swipe gesture
                 Box(
