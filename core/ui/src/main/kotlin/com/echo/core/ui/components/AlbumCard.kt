@@ -74,7 +74,7 @@ fun AlbumCard(
         Column(
             modifier = Modifier.padding(8.dp)
         ) {
-            // Cover Image with Play Button
+            // Cover Image
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -89,23 +89,23 @@ fun AlbumCard(
                     contentScale = ContentScale.Crop
                 )
 
-                // Gradient overlay at bottom
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.3f)
-                                ),
-                                startY = 200f
-                            )
-                        )
-                )
-
-                // Play Button
+                // Play Button (only if callback provided)
                 if (onPlayClick != null) {
+                    // Gradient overlay at bottom
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.3f)
+                                    ),
+                                    startY = 200f
+                                )
+                            )
+                    )
+
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
