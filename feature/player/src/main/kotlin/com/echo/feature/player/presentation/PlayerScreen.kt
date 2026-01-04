@@ -36,6 +36,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -43,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
@@ -58,6 +60,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.echo.core.media.player.RepeatMode
 import com.echo.core.ui.theme.EchoCoral
+import com.echo.core.ui.util.ColorExtractor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,6 +71,21 @@ fun PlayerScreen(
 ) {
     val state by viewModel.playerState.collectAsState()
     val currentTrack = state.currentTrack
+    val context = LocalContext.current
+
+    // Extract dominant color from album art
+    var dominantColor by remember { mutableStateOf<Color?>(null) }
+    LaunchedEffect(currentTrack?.coverUrl) {
+        val coverUrl = currentTrack?.coverUrl
+        if (coverUrl != null) {
+            dominantColor = ColorExtractor.extractDominantColor(
+                context = context,
+                imageUrl = coverUrl
+            )
+        } else {
+            dominantColor = null
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -111,30 +129,27 @@ fun PlayerScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
-            // Background with album art blur
-            currentTrack?.coverUrl?.let { coverUrl ->
-                AsyncImage(
-                    model = coverUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .blur(radius = 50.dp),
-                    contentScale = ContentScale.Crop
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.7f),
-                                    MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
-                                    MaterialTheme.colorScheme.background
-                                )
-                            )
+            // Background with dominant color gradient
+            val baseColor = dominantColor ?: MaterialTheme.colorScheme.background
+            val backgroundColor = MaterialTheme.colorScheme.background
+
+            // Subtle gradient from dominant color at top to background at bottom
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                baseColor.copy(alpha = 0.4f),
+                                baseColor.copy(alpha = 0.2f),
+                                backgroundColor.copy(alpha = 0.95f),
+                                backgroundColor
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
                         )
-                )
-            }
+                    )
+            )
 
             Column(
                 modifier = Modifier
