@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -28,9 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +45,8 @@ data class MiniPlayerState(
     val trackTitle: String = "",
     val artistName: String = "",
     val coverUrl: String? = null,
-    val progress: Float = 0f // 0.0 to 1.0
+    val progress: Float = 0f,
+    val dominantColor: Color? = null
 )
 
 @Composable
@@ -68,131 +68,126 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
-            Box(
+            // Dynamic background based on album art color
+            val backgroundColor = state.dominantColor?.let { dominantColor ->
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        dominantColor.copy(alpha = 0.9f),
+                        dominantColor.copy(alpha = 0.7f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    )
+                )
+            } ?: Brush.horizontalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.surface,
+                    MaterialTheme.colorScheme.surface
+                )
+            )
+
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(
                         elevation = 8.dp,
                         shape = RoundedCornerShape(12.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.3f),
-                        spotColor = Color.Black.copy(alpha = 0.3f)
+                        ambientColor = state.dominantColor?.copy(alpha = 0.3f) ?: Color.Black.copy(alpha = 0.3f),
+                        spotColor = state.dominantColor?.copy(alpha = 0.3f) ?: Color.Black.copy(alpha = 0.3f)
                     )
                     .clip(RoundedCornerShape(12.dp))
+                    .background(backgroundColor)
             ) {
-                // Blurred album art background
-                if (state.coverUrl != null) {
+                // Player content
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onPlayerClick)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Album cover
                     AsyncImage(
                         model = state.coverUrl,
-                        contentDescription = null,
+                        contentDescription = state.trackTitle,
                         modifier = Modifier
-                            .fillMaxSize()
-                            .blur(radius = 20.dp),
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Crop
                     )
-                }
 
-                // Dark overlay for readability
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
-                )
+                    Spacer(modifier = Modifier.width(12.dp))
 
-                // Content
-                Column {
-                    // Player content
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onPlayerClick)
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Track info
+                    Column(
+                        modifier = Modifier.weight(1f)
                     ) {
-                        // Album cover
-                        AsyncImage(
-                            model = state.coverUrl,
-                            contentDescription = state.trackTitle,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
+                        Text(
+                            text = state.trackTitle,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        // Track info
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = state.trackTitle,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = state.artistName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        // Controls
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Play/Pause button
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .background(EchoCoral, CircleShape)
-                                    .clip(CircleShape)
-                                    .clickable(onClick = onPlayPauseClick),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (state.isPlaying) "Pausar" else "Reproducir",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(4.dp))
-
-                            // Next button
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .clickable(onClick = onNextClick),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.SkipNext,
-                                    contentDescription = "Siguiente",
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                        }
+                        Text(
+                            text = state.artistName,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
-                    // Progress bar at bottom
-                    LinearProgressIndicator(
-                        progress = { state.progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp),
-                        color = EchoCoral,
-                        trackColor = EchoGlass
-                    )
+                    // Controls
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Play/Pause button
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(EchoCoral, CircleShape)
+                                .clip(CircleShape)
+                                .clickable(onClick = onPlayPauseClick),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (state.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                contentDescription = if (state.isPlaying) "Pausar" else "Reproducir",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        // Next button
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onNextClick),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SkipNext,
+                                contentDescription = "Siguiente",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+                    }
                 }
+
+                // Progress bar at bottom
+                LinearProgressIndicator(
+                    progress = { state.progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp),
+                    color = EchoCoral,
+                    trackColor = EchoGlass
+                )
             }
         }
     }

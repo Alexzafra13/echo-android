@@ -12,10 +12,14 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -32,6 +36,7 @@ import com.echo.core.ui.components.EchoTopBar
 import com.echo.core.ui.components.MiniPlayer
 import com.echo.core.ui.components.MiniPlayerState
 import com.echo.core.ui.theme.EchoTheme
+import com.echo.core.ui.util.ColorExtractor
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -117,6 +122,22 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
+                    // Extract dominant color from album art
+                    val context = LocalContext.current
+                    val dominantColor = remember { mutableStateOf<Color?>(null) }
+
+                    LaunchedEffect(playerState.currentTrack?.coverUrl) {
+                        val coverUrl = playerState.currentTrack?.coverUrl
+                        if (coverUrl != null) {
+                            dominantColor.value = ColorExtractor.extractDominantColor(
+                                context = context,
+                                imageUrl = coverUrl
+                            )
+                        } else {
+                            dominantColor.value = null
+                        }
+                    }
+
                     Column(modifier = Modifier.fillMaxSize()) {
                         // Top Bar (only on main screens)
                         if (isMainScreen) {
@@ -154,7 +175,8 @@ class MainActivity : ComponentActivity() {
                                 trackTitle = playerState.currentTrack?.title ?: "",
                                 artistName = playerState.currentTrack?.artist ?: "",
                                 coverUrl = playerState.currentTrack?.coverUrl,
-                                progress = playerState.progress
+                                progress = playerState.progress,
+                                dominantColor = dominantColor.value
                             ),
                             onPlayerClick = {
                                 navController.navigate(EchoDestinations.PLAYER)
