@@ -36,7 +36,37 @@ data class ArtistAlbum(
         }
 }
 
+data class ArtistTopTrack(
+    val trackId: String,
+    val title: String,
+    val albumId: String? = null,
+    val albumName: String? = null,
+    val duration: Int? = null,
+    val playCount: Int = 0,
+    val uniqueListeners: Int = 0,
+    val coverUrl: String? = null
+) {
+    val formattedDuration: String
+        get() {
+            val totalSeconds = duration ?: return ""
+            val minutes = totalSeconds / 60
+            val seconds = totalSeconds % 60
+            return "$minutes:${seconds.toString().padStart(2, '0')}"
+        }
+}
+
+data class RelatedArtist(
+    val id: String,
+    val name: String,
+    val albumCount: Int = 0,
+    val songCount: Int = 0,
+    val matchScore: Int = 0,
+    val imageUrl: String? = null
+)
+
 data class ArtistWithAlbums(
     val artist: Artist,
-    val albums: List<ArtistAlbum>
+    val albums: List<ArtistAlbum>,
+    val topTracks: List<ArtistTopTrack> = emptyList(),
+    val relatedArtists: List<RelatedArtist> = emptyList()
 )

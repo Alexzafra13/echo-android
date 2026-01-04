@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.echo.feature.artists.data.repository.ArtistsRepository
 import com.echo.feature.artists.domain.model.Artist
 import com.echo.feature.artists.domain.model.ArtistAlbum
+import com.echo.feature.artists.domain.model.ArtistTopTrack
+import com.echo.feature.artists.domain.model.RelatedArtist
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +20,9 @@ data class ArtistDetailState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val artist: Artist? = null,
-    val albums: List<ArtistAlbum> = emptyList()
+    val albums: List<ArtistAlbum> = emptyList(),
+    val topTracks: List<ArtistTopTrack> = emptyList(),
+    val relatedArtists: List<RelatedArtist> = emptyList()
 )
 
 @HiltViewModel
@@ -46,7 +50,9 @@ class ArtistDetailViewModel @Inject constructor(
                         it.copy(
                             isLoading = false,
                             artist = artistWithAlbums.artist,
-                            albums = artistWithAlbums.albums.sortedByDescending { album -> album.year }
+                            albums = artistWithAlbums.albums.sortedByDescending { album -> album.year },
+                            topTracks = artistWithAlbums.topTracks,
+                            relatedArtists = artistWithAlbums.relatedArtists
                         )
                     }
                 }
