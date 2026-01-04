@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
@@ -211,9 +212,13 @@ fun MiniPlayer(
 
                             // Next track info (slides in from the right - only visible when swiping)
                             if (state.nextTrackTitle != null && offsetX.value < 0) {
+                                // Fade in gradually as user swipes (0 to 1 over first 80px of swipe)
+                                val nextTrackAlpha = ((-offsetX.value) / 80f).coerceIn(0f, 1f)
+
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .alpha(nextTrackAlpha)
                                         .offset { IntOffset((textAreaWidth + offsetX.value).roundToInt(), 0) }
                                 ) {
                                     Text(
