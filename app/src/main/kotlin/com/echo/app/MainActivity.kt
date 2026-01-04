@@ -173,11 +173,13 @@ class MainActivity : ComponentActivity() {
                                 currentRoute = currentRoute,
                                 onNavigate = { item ->
                                     navController.navigate(item.route) {
+                                        // Pop up to home, clearing the back stack
                                         popUpTo(EchoDestinations.HOME) {
-                                            saveState = true
+                                            inclusive = false
+                                            saveState = isMainScreen
                                         }
                                         launchSingleTop = true
-                                        restoreState = true
+                                        restoreState = isMainScreen
                                     }
                                 },
                                 modifier = Modifier.navigationBarsPadding()
