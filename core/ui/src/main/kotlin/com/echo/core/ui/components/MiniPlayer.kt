@@ -209,8 +209,8 @@ fun MiniPlayer(
                                 )
                             }
 
-                            // Next track info (slides in from the right)
-                            if (state.nextTrackTitle != null) {
+                            // Next track info (slides in from the right - only visible when swiping)
+                            if (state.nextTrackTitle != null && offsetX.value < 0) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
