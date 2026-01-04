@@ -161,42 +161,47 @@ fun MiniPlayer(
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Album cover (stays in place)
-                        AsyncImage(
-                            model = state.coverUrl,
-                            contentDescription = state.trackTitle,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        // Track info (moves with swipe)
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-                                .alpha(1f - (offsetX.value.absoluteValue / 200f).coerceIn(0f, 1f))
+                        // Album cover with track info that slides behind it
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
                         ) {
-                            Text(
-                                text = state.trackTitle,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = state.artistName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                            // Track info (moves with swipe - rendered first, so it's behind)
+                            Column(
+                                modifier = Modifier
+                                    .padding(start = 60.dp) // Space for cover
+                                    .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                            ) {
+                                Text(
+                                    text = state.trackTitle,
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontWeight = FontWeight.SemiBold
+                                    ),
+                                    color = Color.White,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = state.artistName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.8f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            // Album cover (rendered on top, text slides behind it)
+                            AsyncImage(
+                                model = state.coverUrl,
+                                contentDescription = state.trackTitle,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
                             )
                         }
+
+                        Spacer(modifier = Modifier.width(12.dp))
 
                         // Play/Pause button (stays in place)
                         Box(
