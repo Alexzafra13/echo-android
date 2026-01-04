@@ -35,7 +35,10 @@ class ArtistsRepository @Inject constructor(
         return "$baseUrl/api/albums/$albumId/cover"
     }
 
-    private suspend fun ArtistDto.toDomain(): Artist {
+    private suspend fun ArtistDto.toDomain(
+        playCount: Int = 0,
+        listenerCount: Int = 0
+    ): Artist {
         val baseUrl = getBaseUrl()
         return Artist(
             id = id,
@@ -44,9 +47,9 @@ class ArtistsRepository @Inject constructor(
             backgroundUrl = buildImageUrl(baseUrl, id, "background"),
             biography = biography,
             albumCount = albumCount ?: 0,
-            trackCount = trackCount ?: 0,
-            playCount = playCount ?: 0,
-            listenerCount = listenerCount ?: 0
+            trackCount = songCount ?: 0,
+            playCount = playCount,
+            listenerCount = listenerCount
         )
     }
 
@@ -75,9 +78,21 @@ class ArtistsRepository @Inject constructor(
     }
 
     suspend fun getArtistWithAlbums(artistId: String): Result<ArtistWithAlbums> = runCatching {
-        val artistDto = getApi().getArtist(artistId)
-        val artist = artistDto.toDomain()
-        val albumDtos = getApi().getArtistAlbums(artistId).data
+        val api = getApi()
+        val artistDto = api.getArtist(artistId)
+        val albumDtos = api.getArtistAlbums(artistId).data
+
+        // Try to get stats, but don't fail if it doesn't work
+        val stats = try {
+            api.getArtistStats(artistId)
+        } catch (e: Exception) {
+            null
+        }
+
+        val artist = artistDto.toDomain(
+            playCount = stats?.totalPlays ?: 0,
+            listenerCount = stats?.uniqueListeners ?: 0
+        )
         val albums = albumDtos.map { it.toDomain(artistId, artist.name) }
         ArtistWithAlbums(artist = artist, albums = albums)
     }
