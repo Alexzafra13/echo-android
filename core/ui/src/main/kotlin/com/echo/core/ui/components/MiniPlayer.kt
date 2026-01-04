@@ -2,6 +2,8 @@ package com.echo.core.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -129,26 +131,38 @@ fun MiniPlayer(
                                 onDragEnd = {
                                     scope.launch {
                                         if (offsetX.value < -swipeThreshold) {
-                                            // Swipe left detected - animate out and trigger next
+                                            // Swipe left detected - animate to final position smoothly
                                             offsetX.animateTo(
-                                                targetValue = -textAreaWidth,
-                                                animationSpec = tween(150)
+                                                targetValue = -nextTrackStartOffset,
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                                    stiffness = Spring.StiffnessMedium
+                                                )
                                             )
                                             onNextClick()
                                             // Reset position instantly for next track
                                             offsetX.snapTo(0f)
                                         } else {
-                                            // Snap back to original position
+                                            // Snap back to original position with spring
                                             offsetX.animateTo(
                                                 targetValue = 0f,
-                                                animationSpec = tween(200)
+                                                animationSpec = spring(
+                                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                    stiffness = Spring.StiffnessMedium
+                                                )
                                             )
                                         }
                                     }
                                 },
                                 onDragCancel = {
                                     scope.launch {
-                                        offsetX.animateTo(0f, tween(200))
+                                        offsetX.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = spring(
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                                stiffness = Spring.StiffnessMedium
+                                            )
+                                        )
                                     }
                                 },
                                 onHorizontalDrag = { _, dragAmount ->
