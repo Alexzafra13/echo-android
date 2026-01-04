@@ -85,12 +85,15 @@ fun EchoBottomNavBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Glass effect - gradient from transparent to opaque
+    // App's dark background color
+    val appBackground = Color(0xFF0F172A)
+
+    // Glass effect - gradient from more transparent to more opaque
     val glassGradient = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF121212).copy(alpha = 0.7f),
-            Color(0xFF121212).copy(alpha = 0.92f),
-            Color(0xFF121212).copy(alpha = 0.98f)
+            appBackground.copy(alpha = 0.5f),
+            appBackground.copy(alpha = 0.85f),
+            appBackground.copy(alpha = 0.95f)
         )
     )
 
