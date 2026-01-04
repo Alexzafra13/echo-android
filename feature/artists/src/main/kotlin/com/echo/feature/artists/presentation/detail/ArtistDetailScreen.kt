@@ -243,27 +243,62 @@ private fun ArtistHeader(artist: Artist) {
 
 @Composable
 private fun ArtistStats(artist: Artist, albums: List<ArtistAlbum>) {
-    // Build stats string: "4 álbumes • 53 canciones • 18 reproducciones • 1 oyente"
-    val stats = buildList {
-        add("${artist.albumCount} álbumes")
-        add("${artist.trackCount} canciones")
-        if (artist.playCount > 0) {
-            add("${artist.playCount} reproducciones")
-        }
-        if (artist.listenerCount > 0) {
-            add("${artist.listenerCount} ${if (artist.listenerCount == 1) "oyente" else "oyentes"}")
-        }
-    }
-
-    Text(
-        text = stats.joinToString(" • "),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        textAlign = TextAlign.Center
-    )
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Main stats row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatItem(
+                value = artist.albumCount.toString(),
+                label = "Álbumes"
+            )
+            StatItem(
+                value = artist.trackCount.toString(),
+                label = "Canciones"
+            )
+            if (artist.playCount > 0) {
+                StatItem(
+                    value = artist.playCount.toString(),
+                    label = "Reproducciones"
+                )
+            }
+            if (artist.listenerCount > 0) {
+                StatItem(
+                    value = artist.listenerCount.toString(),
+                    label = if (artist.listenerCount == 1) "Oyente" else "Oyentes"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(
+    value: String,
+    label: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = EchoCoral
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }
 
 @Composable

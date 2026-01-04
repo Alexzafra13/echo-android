@@ -8,10 +8,17 @@ data class ArtistDto(
     val name: String,
     val imageUrl: String? = null,
     val albumCount: Int? = null,
-    val trackCount: Int? = null,
-    val playCount: Int? = null,
-    val listenerCount: Int? = null,
+    val songCount: Int? = null,
     val biography: String? = null
+)
+
+@Serializable
+data class ArtistStatsDto(
+    val artistId: String,
+    val totalPlays: Int? = null,
+    val uniqueListeners: Int? = null,
+    val avgCompletionRate: Double? = null,
+    val skipRate: Double? = null
 )
 
 @Serializable
