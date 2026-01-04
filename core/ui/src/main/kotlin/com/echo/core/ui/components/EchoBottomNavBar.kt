@@ -91,9 +91,9 @@ fun EchoBottomNavBar(
     // Subtle glass effect - mostly opaque with slight transparency at top
     val glassGradient = Brush.verticalGradient(
         colors = listOf(
-            appBackground.copy(alpha = 0.75f),
-            appBackground.copy(alpha = 0.92f),
-            appBackground.copy(alpha = 0.98f)
+            appBackground.copy(alpha = 0.82f),
+            appBackground.copy(alpha = 0.94f),
+            appBackground.copy(alpha = 0.99f)
         )
     )
 
