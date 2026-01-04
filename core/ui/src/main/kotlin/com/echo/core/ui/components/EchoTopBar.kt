@@ -3,7 +3,6 @@ package com.echo.core.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -36,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkBackground
-import com.echo.core.ui.theme.EchoGlassBorder
 
 @Composable
 fun EchoTopBar(
@@ -50,60 +48,44 @@ fun EchoTopBar(
 ) {
     // Solid at top, glass effect when scrolled (like Apple Music)
     val backgroundAlpha by animateFloatAsState(
-        targetValue = if (hasScrolled) 0.75f else 1f,
-        animationSpec = tween(durationMillis = 250),
+        targetValue = if (hasScrolled) 0.92f else 1f,
+        animationSpec = tween(durationMillis = 200),
         label = "backgroundAlpha"
     )
 
-    val borderAlpha by animateFloatAsState(
-        targetValue = if (hasScrolled) 0.15f else 0f,
-        animationSpec = tween(durationMillis = 250),
-        label = "borderAlpha"
-    )
+    // Glass effect color - slightly lighter than background for depth
+    val glassColor = Color(0xFF1E2536)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
     ) {
-        // Main background layer - solid or semi-transparent
+        // Main background - high opacity glass
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(EchoDarkBackground.copy(alpha = backgroundAlpha))
+                .background(
+                    if (hasScrolled) {
+                        glassColor.copy(alpha = backgroundAlpha)
+                    } else {
+                        EchoDarkBackground
+                    }
+                )
         )
 
-        // Frosted glass overlay when scrolled - subtle light tint
+        // Subtle top highlight for glass depth
         if (hasScrolled) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White.copy(alpha = 0.06f),
-                                Color.White.copy(alpha = 0.03f),
-                                Color.Transparent
+                            colorStops = arrayOf(
+                                0f to Color.White.copy(alpha = 0.03f),
+                                0.5f to Color.Transparent,
+                                1f to Color.Transparent
                             )
                         )
-                    )
-            )
-        }
-
-        // Bottom border for glass effect separation
-        if (hasScrolled) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .border(
-                        width = 0.5.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                EchoGlassBorder.copy(alpha = borderAlpha)
-                            )
-                        ),
-                        shape = RoundedCornerShape(0.dp)
                     )
             )
         }
