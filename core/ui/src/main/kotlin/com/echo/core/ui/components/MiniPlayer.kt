@@ -78,7 +78,8 @@ fun MiniPlayer(
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
     val density = LocalDensity.current
     val swipeThreshold = 100f
-    val textAreaWidth = with(density) { 200.dp.toPx() }
+    val textAreaWidth = with(density) { 250.dp.toPx() } // Width for swipe limit
+    val nextTrackStartOffset = with(density) { 300.dp.toPx() } // Start position for next track (further right)
 
     AnimatedVisibility(
         visible = state.isVisible,
@@ -212,14 +213,14 @@ fun MiniPlayer(
 
                             // Next track info (slides in from the right - only visible when swiping)
                             if (state.nextTrackTitle != null && offsetX.value < 0) {
-                                // Fade in gradually as user swipes (0 to 1 over first 80px of swipe)
-                                val nextTrackAlpha = ((-offsetX.value) / 80f).coerceIn(0f, 1f)
+                                // Fade in gradually as user swipes (0 to 1 over first 100px of swipe)
+                                val nextTrackAlpha = ((-offsetX.value) / 100f).coerceIn(0f, 1f)
 
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .alpha(nextTrackAlpha)
-                                        .offset { IntOffset((textAreaWidth + offsetX.value).roundToInt(), 0) }
+                                        .offset { IntOffset((nextTrackStartOffset + offsetX.value).roundToInt(), 0) }
                                 ) {
                                     Text(
                                         text = state.nextTrackTitle,
