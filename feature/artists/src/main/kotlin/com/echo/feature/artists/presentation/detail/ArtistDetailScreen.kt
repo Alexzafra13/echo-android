@@ -135,16 +135,7 @@ private fun ArtistDetailContent(
 
         // Stats row
         item {
-            ArtistStats(artist = artist)
-        }
-
-        // Biography (if available)
-        artist.biography?.let { bio ->
-            if (bio.isNotBlank()) {
-                item {
-                    ArtistBiography(biography = bio)
-                }
-            }
+            ArtistStats(artist = artist, albums = albums)
         }
 
         // Albums section
@@ -164,6 +155,15 @@ private fun ArtistDetailContent(
                     albums = albums,
                     onAlbumClick = onAlbumClick
                 )
+            }
+        }
+
+        // Biography at the end (if available)
+        artist.biography?.let { bio ->
+            if (bio.isNotBlank()) {
+                item {
+                    ArtistBiography(biography = bio)
+                }
             }
         }
     }
@@ -242,7 +242,10 @@ private fun ArtistHeader(artist: Artist) {
 }
 
 @Composable
-private fun ArtistStats(artist: Artist) {
+private fun ArtistStats(artist: Artist, albums: List<ArtistAlbum>) {
+    // Calculate total tracks from albums
+    val totalTracks = albums.sumOf { it.trackCount }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -250,11 +253,11 @@ private fun ArtistStats(artist: Artist) {
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
         StatItem(
-            value = artist.albumCount.toString(),
+            value = albums.size.toString(),
             label = "Álbumes"
         )
         StatItem(
-            value = artist.trackCount.toString(),
+            value = totalTracks.toString(),
             label = "Canciones"
         )
     }
