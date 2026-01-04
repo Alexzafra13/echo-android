@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
@@ -42,10 +43,19 @@ fun EchoTopBar(
     notificationCount: Int = 0,
     profileImageUrl: String? = null
 ) {
+    // Glass effect gradient - semi-transparent
+    val glassGradient = Brush.verticalGradient(
+        colors = listOf(
+            EchoDarkBackground.copy(alpha = 0.95f),
+            EchoDarkBackground.copy(alpha = 0.88f),
+            EchoDarkBackground.copy(alpha = 0.75f)
+        )
+    )
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(EchoDarkBackground)
+            .background(glassGradient)
             .statusBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
