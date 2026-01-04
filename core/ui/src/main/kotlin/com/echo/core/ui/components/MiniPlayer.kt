@@ -94,21 +94,19 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
-            // Dynamic background based on album art color
-            val backgroundColor = state.dominantColor?.let { dominantColor ->
+            // Base dark background color
+            val baseBackground = Color(0xFF1E1E1E)
+
+            // Dynamic gradient overlay based on album art color
+            val gradientOverlay = state.dominantColor?.let { dominantColor ->
                 Brush.horizontalGradient(
                     colors = listOf(
-                        dominantColor.copy(alpha = 0.9f),
-                        dominantColor.copy(alpha = 0.7f),
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                        dominantColor.copy(alpha = 0.85f),
+                        dominantColor.copy(alpha = 0.5f),
+                        Color.Transparent
                     )
                 )
-            } ?: Brush.horizontalGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.surface,
-                    MaterialTheme.colorScheme.surface
-                )
-            )
+            }
 
             Column(
                 modifier = Modifier
@@ -116,11 +114,18 @@ fun MiniPlayer(
                     .shadow(
                         elevation = 8.dp,
                         shape = RoundedCornerShape(12.dp),
-                        ambientColor = state.dominantColor?.copy(alpha = 0.3f) ?: Color.Black.copy(alpha = 0.3f),
-                        spotColor = state.dominantColor?.copy(alpha = 0.3f) ?: Color.Black.copy(alpha = 0.3f)
+                        ambientColor = Color.Black.copy(alpha = 0.4f),
+                        spotColor = Color.Black.copy(alpha = 0.4f)
                     )
                     .clip(RoundedCornerShape(12.dp))
-                    .background(backgroundColor)
+                    .background(baseBackground)
+                    .then(
+                        if (gradientOverlay != null) {
+                            Modifier.background(gradientOverlay)
+                        } else {
+                            Modifier
+                        }
+                    )
             ) {
                 // Player content with swipe gesture
                 Box(
