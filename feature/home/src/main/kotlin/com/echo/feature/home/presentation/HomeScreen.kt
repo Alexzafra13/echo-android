@@ -64,9 +64,9 @@ fun HomeScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 72.dp, bottom = 100.dp)
+                contentPadding = PaddingValues(bottom = 100.dp)
             ) {
-                // Hero Section
+                // Hero Section - extends under header for seamless background
                 state.featuredAlbum?.let { album ->
                     item {
                         HeroSection(
@@ -74,6 +74,13 @@ fun HomeScreen(
                             onClick = { onNavigateToAlbum(album.id) },
                             onPlayClick = { viewModel.playAlbum(album) }
                         )
+                    }
+                }
+
+                // Spacer if no hero to account for header
+                if (state.featuredAlbum == null) {
+                    item {
+                        Spacer(modifier = Modifier.height(72.dp))
                     }
                 }
 
@@ -140,13 +147,14 @@ private fun HeroSection(
     onClick: () -> Unit,
     onPlayClick: () -> Unit
 ) {
+    // Height includes space for header (72dp) so background extends under it
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(350.dp)
             .clickable(onClick = onClick)
     ) {
-        // Background Image with blur
+        // Background Image with blur - extends to top
         AsyncImage(
             model = album.coverUrl,
             contentDescription = null,
@@ -156,26 +164,29 @@ private fun HeroSection(
             contentScale = ContentScale.Crop
         )
 
-        // Dark overlay
+        // Dark overlay with gradient
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
+                            Color.Black.copy(alpha = 0.3f),
                             Color.Transparent,
                             MaterialTheme.colorScheme.background.copy(alpha = 0.8f),
                             MaterialTheme.colorScheme.background
-                        )
+                        ),
+                        startY = 0f,
+                        endY = Float.POSITIVE_INFINITY
                     )
                 )
         )
 
-        // Content
+        // Content - positioned below header area
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(top = 80.dp, start = 24.dp, end = 24.dp, bottom = 24.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Album Cover
