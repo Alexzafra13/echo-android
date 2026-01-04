@@ -29,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -48,21 +47,28 @@ fun EchoTopBar(
     profileImageUrl: String? = null
 ) {
     // Animate opacity based on scroll state
-    // Transparent at top, glass effect when scrolled
+    // Solid at top, glass effect when scrolled
     val backgroundAlpha by animateFloatAsState(
-        targetValue = if (hasScrolled) 0.92f else 0f,
+        targetValue = if (hasScrolled) 0.85f else 1f,
         animationSpec = tween(durationMillis = 300),
         label = "backgroundAlpha"
     )
 
-    // Glass effect gradient - more opaque at top, fades at bottom
-    val background = Brush.verticalGradient(
-        colors = listOf(
-            EchoDarkBackground.copy(alpha = backgroundAlpha),
-            EchoDarkBackground.copy(alpha = backgroundAlpha * 0.85f),
-            EchoDarkBackground.copy(alpha = backgroundAlpha * 0.6f)
+    // When solid (not scrolled): full opacity
+    // When glass (scrolled): gradient that fades, allowing content to show through
+    val background = if (hasScrolled) {
+        Brush.verticalGradient(
+            colors = listOf(
+                EchoDarkBackground.copy(alpha = backgroundAlpha),
+                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.9f),
+                EchoDarkBackground.copy(alpha = backgroundAlpha * 0.7f)
+            )
         )
-    )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(EchoDarkBackground, EchoDarkBackground)
+        )
+    }
 
     Box(
         modifier = modifier
@@ -114,7 +120,7 @@ fun EchoTopBar(
                     Icon(
                         imageVector = Icons.Default.Notifications,
                         contentDescription = "Notificaciones",
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -134,13 +140,13 @@ fun EchoTopBar(
                     Box(
                         modifier = Modifier
                             .size(32.dp)
-                            .background(EchoDarkSurfaceVariant.copy(alpha = 0.6f), CircleShape),
+                            .background(EchoDarkSurfaceVariant, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Perfil",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(20.dp)
                         )
                     }
