@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -44,7 +45,8 @@ data class MiniPlayerState(
     val trackTitle: String = "",
     val artistName: String = "",
     val coverUrl: String? = null,
-    val progress: Float = 0f
+    val progress: Float = 0f,
+    val dominantColor: Color? = null
 )
 
 @Composable
@@ -66,17 +68,33 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 6.dp)
         ) {
+            // Dynamic background based on album art color
+            val backgroundColor = state.dominantColor?.let { dominantColor ->
+                Brush.horizontalGradient(
+                    colors = listOf(
+                        dominantColor.copy(alpha = 0.9f),
+                        dominantColor.copy(alpha = 0.7f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+                    )
+                )
+            } ?: Brush.horizontalGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.surface,
+                    MaterialTheme.colorScheme.surface
+                )
+            )
+
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .shadow(
                         elevation = 8.dp,
                         shape = RoundedCornerShape(12.dp),
-                        ambientColor = Color.Black.copy(alpha = 0.3f),
-                        spotColor = Color.Black.copy(alpha = 0.3f)
+                        ambientColor = state.dominantColor?.copy(alpha = 0.3f) ?: Color.Black.copy(alpha = 0.3f),
+                        spotColor = state.dominantColor?.copy(alpha = 0.3f) ?: Color.Black.copy(alpha = 0.3f)
                     )
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(backgroundColor)
             ) {
                 // Player content
                 Row(

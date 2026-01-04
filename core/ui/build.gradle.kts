@@ -39,6 +39,7 @@ dependencies {
 
     // Images
     implementation(libs.coil.compose)
+    implementation(libs.palette)
 
     // Testing
     testImplementation(libs.junit)
