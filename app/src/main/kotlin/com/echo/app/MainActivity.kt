@@ -38,6 +38,7 @@ import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.core.datastore.preferences.ThemeMode
 import com.echo.core.datastore.preferences.ThemePreferences
 import com.echo.core.media.player.EchoPlayer
+import com.echo.core.media.radio.RadioPlaybackManager
 import com.echo.core.ui.components.EchoBottomNavBar
 import com.echo.core.ui.components.EchoTopBar
 import com.echo.core.ui.components.MiniPlayer
@@ -58,6 +59,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var echoPlayer: EchoPlayer
+
+    @Inject
+    lateinit var radioPlaybackManager: RadioPlaybackManager
 
     @Inject
     lateinit var themePreferences: ThemePreferences
@@ -89,6 +93,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     val session by sessionPreferences.session.collectAsState()
                     val playerState by echoPlayer.state.collectAsState()
+                    val radioState by radioPlaybackManager.state.collectAsState()
                     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
                     val currentRoute = navBackStackEntry?.destination?.route
@@ -125,22 +130,27 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    // Show mini player when playing and not on auth/player screens
-                    val showMiniPlayer by remember(currentRoute, playerState.currentTrack) {
+                    // Show mini player when playing music or radio (not on auth/player screens)
+                    val showMiniPlayer by remember(currentRoute, playerState.currentTrack, radioState.isRadioMode) {
                         derivedStateOf {
-                            playerState.currentTrack != null &&
+                            val hasContent = playerState.currentTrack != null || radioState.isRadioMode
+                            hasContent &&
                                 currentRoute != null &&
                                 !isAuthScreen &&
                                 currentRoute != EchoDestinations.PLAYER
                         }
                     }
 
-                    // Extract dominant color from album art
+                    // Extract dominant color from album art or radio station favicon
                     val context = LocalContext.current
                     val dominantColor = remember { mutableStateOf<Color?>(null) }
 
-                    LaunchedEffect(playerState.currentTrack?.coverUrl) {
-                        val coverUrl = playerState.currentTrack?.coverUrl
+                    LaunchedEffect(playerState.currentTrack?.coverUrl, radioState.currentStation?.favicon) {
+                        val coverUrl = if (radioState.isRadioMode) {
+                            radioState.currentStation?.favicon
+                        } else {
+                            playerState.currentTrack?.coverUrl
+                        }
                         if (coverUrl != null) {
                             dominantColor.value = ColorExtractor.extractDominantColor(
                                 context = context,
@@ -206,15 +216,30 @@ class MainActivity : ComponentActivity() {
                         Column(
                             modifier = Modifier.align(Alignment.BottomCenter)
                         ) {
-                            // Get next track info from queue
-                            val nextTrack = if (playerState.queue.isNotEmpty() &&
+                            // Get next track info from queue (only for music)
+                            val nextTrack = if (!radioState.isRadioMode &&
+                                playerState.queue.isNotEmpty() &&
                                 playerState.currentIndex < playerState.queue.size - 1) {
                                 playerState.queue.getOrNull(playerState.currentIndex + 1)
                             } else null
 
-                            // MiniPlayer floats above bottom nav
-                            MiniPlayer(
-                                state = MiniPlayerState(
+                            // Build MiniPlayer state based on radio or music mode
+                            val miniPlayerState = if (radioState.isRadioMode) {
+                                val station = radioState.currentStation
+                                val metadata = radioState.metadata
+                                MiniPlayerState(
+                                    isVisible = showMiniPlayer,
+                                    isPlaying = radioState.isPlaying,
+                                    trackTitle = metadata?.title ?: station?.name ?: "Radio",
+                                    artistName = metadata?.artist ?: station?.tags ?: "",
+                                    coverUrl = station?.favicon,
+                                    progress = 0f, // Radio doesn't have progress
+                                    dominantColor = dominantColor.value,
+                                    nextTrackTitle = null,
+                                    nextArtistName = null
+                                )
+                            } else {
+                                MiniPlayerState(
                                     isVisible = showMiniPlayer,
                                     isPlaying = playerState.isPlaying,
                                     trackTitle = playerState.currentTrack?.title ?: "",
@@ -224,15 +249,34 @@ class MainActivity : ComponentActivity() {
                                     dominantColor = dominantColor.value,
                                     nextTrackTitle = nextTrack?.title,
                                     nextArtistName = nextTrack?.artist
-                                ),
+                                )
+                            }
+
+                            // MiniPlayer floats above bottom nav
+                            MiniPlayer(
+                                state = miniPlayerState,
                                 onPlayerClick = {
-                                    navController.navigate(EchoDestinations.PLAYER)
+                                    if (radioState.isRadioMode) {
+                                        // Navigate to radio screen when in radio mode
+                                        navController.navigate(EchoDestinations.RADIO)
+                                    } else {
+                                        navController.navigate(EchoDestinations.PLAYER)
+                                    }
                                 },
                                 onPlayPauseClick = {
-                                    echoPlayer.togglePlayPause()
+                                    if (radioState.isRadioMode) {
+                                        radioPlaybackManager.togglePlayPause()
+                                    } else {
+                                        echoPlayer.togglePlayPause()
+                                    }
                                 },
                                 onNextClick = {
-                                    echoPlayer.seekToNext()
+                                    if (radioState.isRadioMode) {
+                                        // For radio, stop playback (no next station)
+                                        radioPlaybackManager.stop()
+                                    } else {
+                                        echoPlayer.seekToNext()
+                                    }
                                 }
                             )
 
