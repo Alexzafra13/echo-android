@@ -1,8 +1,8 @@
 package com.echo.feature.home.data.repository
 
+import com.echo.core.datastore.preferences.SavedServer
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.network.api.ApiClientFactory
-import com.echo.core.network.model.ServerConfig
 import com.echo.feature.home.data.api.RadioApi
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
@@ -28,10 +28,11 @@ class RadioRepositoryTest {
     private lateinit var serverPreferences: ServerPreferences
     private lateinit var repository: RadioRepository
 
-    private val testServer = ServerConfig(
+    private val testServer = SavedServer(
         id = "server-1",
         name = "Test Server",
-        url = "http://localhost:3000"
+        url = "http://localhost:3000",
+        addedAt = System.currentTimeMillis()
     )
 
     private val testBrowserStation = RadioBrowserStation(
