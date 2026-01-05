@@ -4,6 +4,7 @@ import com.echo.core.datastore.preferences.SavedServer
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.network.api.ApiClientFactory
 import com.echo.feature.home.data.api.RadioApi
+import com.echo.feature.home.data.api.RadioBrowserApiService
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
@@ -13,6 +14,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.eq
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -24,6 +26,7 @@ import retrofit2.Retrofit
 class RadioRepositoryTest {
 
     private lateinit var radioApi: RadioApi
+    private lateinit var radioBrowserApi: RadioBrowserApiService
     private lateinit var apiClientFactory: ApiClientFactory
     private lateinit var serverPreferences: ServerPreferences
     private lateinit var repository: RadioRepository
@@ -69,6 +72,7 @@ class RadioRepositoryTest {
     @Before
     fun setup() {
         radioApi = mockk(relaxed = true)
+        radioBrowserApi = mockk(relaxed = true)
 
         val retrofit = mockk<Retrofit> {
             every { create(RadioApi::class.java) } returns radioApi
@@ -82,7 +86,7 @@ class RadioRepositoryTest {
             every { activeServer } returns flowOf(testServer)
         }
 
-        repository = RadioRepository(apiClientFactory, serverPreferences)
+        repository = RadioRepository(apiClientFactory, serverPreferences, radioBrowserApi)
     }
 
     // ============================================
@@ -93,7 +97,7 @@ class RadioRepositoryTest {
     fun `searchStations builds correct query params with name only`() = runTest {
         // Given
         val paramsSlot = slot<Map<String, String>>()
-        coEvery { radioApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
+        coEvery { radioBrowserApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
 
         // When
         repository.searchStations(name = "jazz")
@@ -103,14 +107,13 @@ class RadioRepositoryTest {
         assertEquals("jazz", params["name"])
         assertEquals("50", params["limit"])
         assertEquals("true", params["hidebroken"])
-        assertTrue(params.size == 3)
     }
 
     @Test
     fun `searchStations builds correct query params with all parameters`() = runTest {
         // Given
         val paramsSlot = slot<Map<String, String>>()
-        coEvery { radioApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
+        coEvery { radioBrowserApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
 
         // When
         repository.searchStations(
@@ -135,7 +138,7 @@ class RadioRepositoryTest {
     fun `searchStations returns success with stations`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.searchStations(any()) } returns stations
+        coEvery { radioBrowserApi.searchStations(any()) } returns stations
 
         // When
         val result = repository.searchStations(name = "test")
@@ -148,7 +151,7 @@ class RadioRepositoryTest {
     @Test
     fun `searchStations returns failure on exception`() = runTest {
         // Given
-        coEvery { radioApi.searchStations(any()) } throws RuntimeException("Network error")
+        coEvery { radioBrowserApi.searchStations(any()) } throws RuntimeException("Network error")
 
         // When
         val result = repository.searchStations(name = "test")
@@ -166,7 +169,7 @@ class RadioRepositoryTest {
     fun `getTopVoted returns stations successfully`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getTopVoted(any()) } returns stations
+        coEvery { radioBrowserApi.getTopVoted(any()) } returns stations
 
         // When
         val result = repository.getTopVoted(20)
@@ -174,13 +177,13 @@ class RadioRepositoryTest {
         // Then
         assertTrue(result.isSuccess)
         assertEquals(stations, result.getOrNull())
-        coVerify { radioApi.getTopVoted(20) }
+        coVerify { radioBrowserApi.getTopVoted(20) }
     }
 
     @Test
     fun `getTopVoted returns failure on exception`() = runTest {
         // Given
-        coEvery { radioApi.getTopVoted(any()) } throws RuntimeException("Error")
+        coEvery { radioBrowserApi.getTopVoted(any()) } throws RuntimeException("Error")
 
         // When
         val result = repository.getTopVoted()
@@ -197,7 +200,7 @@ class RadioRepositoryTest {
     fun `getPopular returns stations successfully`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getPopular(any()) } returns stations
+        coEvery { radioBrowserApi.getPopular(any()) } returns stations
 
         // When
         val result = repository.getPopular(30)
@@ -205,7 +208,7 @@ class RadioRepositoryTest {
         // Then
         assertTrue(result.isSuccess)
         assertEquals(stations, result.getOrNull())
-        coVerify { radioApi.getPopular(30) }
+        coVerify { radioBrowserApi.getPopular(30) }
     }
 
     // ============================================
@@ -216,7 +219,7 @@ class RadioRepositoryTest {
     fun `getByCountry returns stations for country code`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getByCountry("ES", 50) } returns stations
+        coEvery { radioBrowserApi.getByCountry(eq("ES"), any(), any(), any(), any()) } returns stations
 
         // When
         val result = repository.getByCountry("ES", 50)
@@ -234,7 +237,7 @@ class RadioRepositoryTest {
     fun `getByTag returns stations for tag`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getByTag("rock", 50) } returns stations
+        coEvery { radioBrowserApi.getByTag(eq("rock"), any(), any(), any(), any()) } returns stations
 
         // When
         val result = repository.getByTag("rock", 50)
@@ -255,7 +258,7 @@ class RadioRepositoryTest {
             RadioBrowserTag("rock", 1000),
             RadioBrowserTag("pop", 800)
         )
-        coEvery { radioApi.getTags(any()) } returns tags
+        coEvery { radioBrowserApi.getTags(any(), any(), any(), any()) } returns tags
 
         // When
         val result = repository.getTags(50)
@@ -276,7 +279,7 @@ class RadioRepositoryTest {
             RadioBrowserCountry("Spain", "ES", 500),
             RadioBrowserCountry("United States", "US", 2000)
         )
-        coEvery { radioApi.getCountries() } returns countries
+        coEvery { radioBrowserApi.getCountries(any(), any(), any()) } returns countries
 
         // When
         val result = repository.getCountries()
@@ -374,7 +377,7 @@ class RadioRepositoryTest {
     fun `repository throws when no active server`() = runTest {
         // Given
         every { serverPreferences.activeServer } returns flowOf(null)
-        repository = RadioRepository(apiClientFactory, serverPreferences)
+        repository = RadioRepository(apiClientFactory, serverPreferences, radioBrowserApi)
 
         // When
         val result = repository.getFavorites()

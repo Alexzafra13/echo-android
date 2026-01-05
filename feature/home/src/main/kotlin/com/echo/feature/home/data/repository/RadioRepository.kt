@@ -1,8 +1,10 @@
 package com.echo.feature.home.data.repository
 
+import android.util.Log
 import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.network.api.ApiClientFactory
 import com.echo.feature.home.data.api.RadioApi
+import com.echo.feature.home.data.api.RadioBrowserApiService
 import com.echo.feature.home.data.model.CreateCustomStationDto
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
@@ -16,8 +18,13 @@ import javax.inject.Singleton
 @Singleton
 class RadioRepository @Inject constructor(
     private val apiClientFactory: ApiClientFactory,
-    private val serverPreferences: ServerPreferences
+    private val serverPreferences: ServerPreferences,
+    private val radioBrowserApi: RadioBrowserApiService
 ) {
+
+    companion object {
+        private const val TAG = "RadioRepository"
+    }
 
     private suspend fun getApi(): RadioApi {
         val server = serverPreferences.activeServer.first()
@@ -26,7 +33,7 @@ class RadioRepository @Inject constructor(
     }
 
     // ============================================
-    // Radio Browser API
+    // Radio Browser API (Direct calls to public API)
     // ============================================
 
     /**
@@ -46,51 +53,53 @@ class RadioRepository @Inject constructor(
             tag?.let { put("tag", it) }
             put("limit", limit.toString())
             put("hidebroken", "true")
+            put("order", "clickcount")
+            put("reverse", "true")
         }
-        getApi().searchStations(params)
-    }
+        radioBrowserApi.searchStations(params)
+    }.onFailure { Log.e(TAG, "Error searching stations", it) }
 
     /**
      * Get top voted stations
      */
     suspend fun getTopVoted(limit: Int = 20): Result<List<RadioBrowserStation>> = runCatching {
-        getApi().getTopVoted(limit)
-    }
+        radioBrowserApi.getTopVoted(limit)
+    }.onFailure { Log.e(TAG, "Error getting top voted", it) }
 
     /**
      * Get popular stations
      */
     suspend fun getPopular(limit: Int = 20): Result<List<RadioBrowserStation>> = runCatching {
-        getApi().getPopular(limit)
-    }
+        radioBrowserApi.getPopular(limit)
+    }.onFailure { Log.e(TAG, "Error getting popular", it) }
 
     /**
      * Get stations by country
      */
     suspend fun getByCountry(countryCode: String, limit: Int = 50): Result<List<RadioBrowserStation>> = runCatching {
-        getApi().getByCountry(countryCode, limit)
-    }
+        radioBrowserApi.getByCountry(countryCode, limit)
+    }.onFailure { Log.e(TAG, "Error getting by country", it) }
 
     /**
      * Get stations by tag (genre)
      */
     suspend fun getByTag(tag: String, limit: Int = 50): Result<List<RadioBrowserStation>> = runCatching {
-        getApi().getByTag(tag, limit)
-    }
+        radioBrowserApi.getByTag(tag, limit)
+    }.onFailure { Log.e(TAG, "Error getting by tag", it) }
 
     /**
      * Get available tags (genres)
      */
     suspend fun getTags(limit: Int = 100): Result<List<RadioBrowserTag>> = runCatching {
-        getApi().getTags(limit)
-    }
+        radioBrowserApi.getTags(limit)
+    }.onFailure { Log.e(TAG, "Error getting tags", it) }
 
     /**
      * Get available countries
      */
     suspend fun getCountries(): Result<List<RadioBrowserCountry>> = runCatching {
-        getApi().getCountries()
-    }
+        radioBrowserApi.getCountries()
+    }.onFailure { Log.e(TAG, "Error getting countries", it) }
 
     // ============================================
     // Favorites
