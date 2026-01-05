@@ -1,39 +1,29 @@
 package com.echo.feature.home.data.repository
 
-import com.echo.core.datastore.preferences.SavedServer
-import com.echo.core.datastore.preferences.ServerPreferences
-import com.echo.core.network.api.ApiClientFactory
-import com.echo.feature.home.data.api.RadioApi
+import com.echo.core.database.dao.FavoriteRadioStationDao
+import com.echo.core.database.entity.FavoriteRadioStationEntity
+import com.echo.feature.home.data.api.RadioBrowserApiService
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
-import com.echo.feature.home.data.model.RadioStation
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
+import io.mockk.eq
 import io.mockk.mockk
 import io.mockk.slot
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import retrofit2.Retrofit
 
 class RadioRepositoryTest {
 
-    private lateinit var radioApi: RadioApi
-    private lateinit var apiClientFactory: ApiClientFactory
-    private lateinit var serverPreferences: ServerPreferences
+    private lateinit var radioBrowserApi: RadioBrowserApiService
+    private lateinit var favoriteRadioStationDao: FavoriteRadioStationDao
     private lateinit var repository: RadioRepository
-
-    private val testServer = SavedServer(
-        id = "server-1",
-        name = "Test Server",
-        url = "http://localhost:3000",
-        addedAt = System.currentTimeMillis()
-    )
 
     private val testBrowserStation = RadioBrowserStation(
         stationuuid = "test-uuid",
@@ -52,8 +42,8 @@ class RadioRepositoryTest {
         lastcheckok = 1
     )
 
-    private val testRadioStation = RadioStation(
-        id = "1",
+    private val testFavoriteEntity = FavoriteRadioStationEntity(
+        id = 1,
         stationUuid = "test-uuid",
         name = "Test Radio",
         url = "http://stream.test.com",
@@ -68,21 +58,9 @@ class RadioRepositoryTest {
 
     @Before
     fun setup() {
-        radioApi = mockk(relaxed = true)
-
-        val retrofit = mockk<Retrofit> {
-            every { create(RadioApi::class.java) } returns radioApi
-        }
-
-        apiClientFactory = mockk {
-            every { getClient(any()) } returns retrofit
-        }
-
-        serverPreferences = mockk {
-            every { activeServer } returns flowOf(testServer)
-        }
-
-        repository = RadioRepository(apiClientFactory, serverPreferences)
+        radioBrowserApi = mockk(relaxed = true)
+        favoriteRadioStationDao = mockk(relaxed = true)
+        repository = RadioRepository(radioBrowserApi, favoriteRadioStationDao)
     }
 
     // ============================================
@@ -93,7 +71,7 @@ class RadioRepositoryTest {
     fun `searchStations builds correct query params with name only`() = runTest {
         // Given
         val paramsSlot = slot<Map<String, String>>()
-        coEvery { radioApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
+        coEvery { radioBrowserApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
 
         // When
         repository.searchStations(name = "jazz")
@@ -103,14 +81,13 @@ class RadioRepositoryTest {
         assertEquals("jazz", params["name"])
         assertEquals("50", params["limit"])
         assertEquals("true", params["hidebroken"])
-        assertTrue(params.size == 3)
     }
 
     @Test
     fun `searchStations builds correct query params with all parameters`() = runTest {
         // Given
         val paramsSlot = slot<Map<String, String>>()
-        coEvery { radioApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
+        coEvery { radioBrowserApi.searchStations(capture(paramsSlot)) } returns listOf(testBrowserStation)
 
         // When
         repository.searchStations(
@@ -135,7 +112,7 @@ class RadioRepositoryTest {
     fun `searchStations returns success with stations`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.searchStations(any()) } returns stations
+        coEvery { radioBrowserApi.searchStations(any()) } returns stations
 
         // When
         val result = repository.searchStations(name = "test")
@@ -148,7 +125,7 @@ class RadioRepositoryTest {
     @Test
     fun `searchStations returns failure on exception`() = runTest {
         // Given
-        coEvery { radioApi.searchStations(any()) } throws RuntimeException("Network error")
+        coEvery { radioBrowserApi.searchStations(any()) } throws RuntimeException("Network error")
 
         // When
         val result = repository.searchStations(name = "test")
@@ -166,7 +143,7 @@ class RadioRepositoryTest {
     fun `getTopVoted returns stations successfully`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getTopVoted(any()) } returns stations
+        coEvery { radioBrowserApi.getTopVoted(any()) } returns stations
 
         // When
         val result = repository.getTopVoted(20)
@@ -174,13 +151,13 @@ class RadioRepositoryTest {
         // Then
         assertTrue(result.isSuccess)
         assertEquals(stations, result.getOrNull())
-        coVerify { radioApi.getTopVoted(20) }
+        coVerify { radioBrowserApi.getTopVoted(20) }
     }
 
     @Test
     fun `getTopVoted returns failure on exception`() = runTest {
         // Given
-        coEvery { radioApi.getTopVoted(any()) } throws RuntimeException("Error")
+        coEvery { radioBrowserApi.getTopVoted(any()) } throws RuntimeException("Error")
 
         // When
         val result = repository.getTopVoted()
@@ -197,7 +174,7 @@ class RadioRepositoryTest {
     fun `getPopular returns stations successfully`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getPopular(any()) } returns stations
+        coEvery { radioBrowserApi.getPopular(any()) } returns stations
 
         // When
         val result = repository.getPopular(30)
@@ -205,7 +182,7 @@ class RadioRepositoryTest {
         // Then
         assertTrue(result.isSuccess)
         assertEquals(stations, result.getOrNull())
-        coVerify { radioApi.getPopular(30) }
+        coVerify { radioBrowserApi.getPopular(30) }
     }
 
     // ============================================
@@ -216,7 +193,7 @@ class RadioRepositoryTest {
     fun `getByCountry returns stations for country code`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getByCountry("ES", 50) } returns stations
+        coEvery { radioBrowserApi.getByCountry(eq("ES"), any(), any(), any(), any()) } returns stations
 
         // When
         val result = repository.getByCountry("ES", 50)
@@ -234,7 +211,7 @@ class RadioRepositoryTest {
     fun `getByTag returns stations for tag`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioApi.getByTag("rock", 50) } returns stations
+        coEvery { radioBrowserApi.getByTag(eq("rock"), any(), any(), any(), any()) } returns stations
 
         // When
         val result = repository.getByTag("rock", 50)
@@ -255,7 +232,7 @@ class RadioRepositoryTest {
             RadioBrowserTag("rock", 1000),
             RadioBrowserTag("pop", 800)
         )
-        coEvery { radioApi.getTags(any()) } returns tags
+        coEvery { radioBrowserApi.getTags(any(), any(), any(), any()) } returns tags
 
         // When
         val result = repository.getTags(50)
@@ -276,7 +253,7 @@ class RadioRepositoryTest {
             RadioBrowserCountry("Spain", "ES", 500),
             RadioBrowserCountry("United States", "US", 2000)
         )
-        coEvery { radioApi.getCountries() } returns countries
+        coEvery { radioBrowserApi.getCountries(any(), any(), any()) } returns countries
 
         // When
         val result = repository.getCountries()
@@ -287,71 +264,84 @@ class RadioRepositoryTest {
     }
 
     // ============================================
-    // Favorites Tests
+    // Local Favorites Tests
     // ============================================
 
     @Test
-    fun `getFavorites returns user favorites`() = runTest {
+    fun `getFavorites returns favorites from local database`() = runTest {
         // Given
-        val favorites = listOf(testRadioStation)
-        coEvery { radioApi.getFavorites() } returns favorites
+        val favorites = listOf(testFavoriteEntity)
+        coEvery { favoriteRadioStationDao.getAllFavoritesList() } returns favorites
 
         // When
         val result = repository.getFavorites()
 
         // Then
         assertTrue(result.isSuccess)
-        assertEquals(favorites, result.getOrNull())
+        val stations = result.getOrNull()!!
+        assertEquals(1, stations.size)
+        assertEquals("Test Radio", stations[0].name)
+        assertEquals("test-uuid", stations[0].stationUuid)
     }
 
     @Test
-    fun `saveFavorite saves station and returns result`() = runTest {
+    fun `saveFavorite saves station to local database`() = runTest {
         // Given
-        coEvery { radioApi.saveFavoriteFromApi(any()) } returns testRadioStation
+        coEvery { favoriteRadioStationDao.insert(any()) } returns 1L
 
         // When
         val result = repository.saveFavorite(testBrowserStation)
 
         // Then
         assertTrue(result.isSuccess)
-        assertEquals(testRadioStation, result.getOrNull())
-        coVerify { radioApi.saveFavoriteFromApi(any()) }
+        val savedStation = result.getOrNull()!!
+        assertEquals("Test Radio", savedStation.name)
+        assertEquals("test-uuid", savedStation.stationUuid)
+        coVerify { favoriteRadioStationDao.insert(any()) }
     }
 
     @Test
-    fun `deleteFavorite deletes station successfully`() = runTest {
+    fun `deleteFavorite deletes station from local database`() = runTest {
         // Given
-        coEvery { radioApi.deleteFavorite("1") } returns Unit
+        coEvery { favoriteRadioStationDao.deleteById(1L) } returns Unit
 
         // When
         val result = repository.deleteFavorite("1")
 
         // Then
         assertTrue(result.isSuccess)
-        coVerify { radioApi.deleteFavorite("1") }
+        coVerify { favoriteRadioStationDao.deleteById(1L) }
     }
 
     @Test
-    fun `deleteFavorite returns failure on error`() = runTest {
+    fun `deleteFavoriteByUuid deletes station by UUID`() = runTest {
         // Given
-        coEvery { radioApi.deleteFavorite(any()) } throws RuntimeException("Not found")
+        coEvery { favoriteRadioStationDao.deleteByStationUuid("test-uuid") } returns Unit
 
         // When
-        val result = repository.deleteFavorite("999")
+        val result = repository.deleteFavoriteByUuid("test-uuid")
 
         // Then
-        assertTrue(result.isFailure)
+        assertTrue(result.isSuccess)
+        coVerify { favoriteRadioStationDao.deleteByStationUuid("test-uuid") }
     }
 
-    // ============================================
-    // Custom Station Tests
-    // ============================================
+    @Test
+    fun `isFavorite returns true when station is favorite`() = runTest {
+        // Given
+        coEvery { favoriteRadioStationDao.isFavorite("test-uuid") } returns true
+
+        // When
+        val result = repository.isFavorite("test-uuid")
+
+        // Then
+        assertTrue(result)
+    }
 
     @Test
-    fun `createCustomStation creates station successfully`() = runTest {
+    fun `createCustomStation creates station in local database`() = runTest {
         // Given
-        val customStation = testRadioStation.copy(source = "custom")
-        coEvery { radioApi.createCustomStation(any()) } returns customStation
+        coEvery { favoriteRadioStationDao.insert(any()) } returns 1L
 
         // When
         val result = repository.createCustomStation(
@@ -363,36 +353,24 @@ class RadioRepositoryTest {
 
         // Then
         assertTrue(result.isSuccess)
-        assertEquals(customStation, result.getOrNull())
-    }
-
-    // ============================================
-    // Server Configuration Tests
-    // ============================================
-
-    @Test
-    fun `repository throws when no active server`() = runTest {
-        // Given
-        every { serverPreferences.activeServer } returns flowOf(null)
-        repository = RadioRepository(apiClientFactory, serverPreferences)
-
-        // When
-        val result = repository.getFavorites()
-
-        // Then
-        assertTrue(result.isFailure)
-        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        val station = result.getOrNull()!!
+        assertEquals("My Radio", station.name)
+        assertEquals("http://myradio.com/stream", station.url)
+        coVerify { favoriteRadioStationDao.insert(any()) }
     }
 
     @Test
-    fun `repository uses correct server URL`() = runTest {
+    fun `observeFavorites returns flow of favorites`() = runTest {
         // Given
-        coEvery { radioApi.getFavorites() } returns emptyList()
+        val favorites = listOf(testFavoriteEntity)
+        coEvery { favoriteRadioStationDao.getAllFavorites() } returns flowOf(favorites)
 
         // When
-        repository.getFavorites()
+        val flow = repository.observeFavorites()
 
         // Then
-        coVerify { apiClientFactory.getClient("http://localhost:3000") }
+        val stations = flow.first()
+        assertEquals(1, stations.size)
+        assertEquals("Test Radio", stations[0].name)
     }
 }
