@@ -39,6 +39,8 @@ dependencies {
     // Networking
     implementation(libs.retrofit)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.sse)
 
     // Hilt
     implementation(libs.hilt.android)

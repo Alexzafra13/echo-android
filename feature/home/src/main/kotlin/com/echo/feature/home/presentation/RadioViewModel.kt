@@ -2,6 +2,11 @@ package com.echo.feature.home.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.echo.core.media.model.PlayableRadioStation
+import com.echo.core.media.model.RadioMetadata
+import com.echo.core.media.model.RadioSignalStatus
+import com.echo.core.media.radio.PlayableRadioStationBuilder
+import com.echo.core.media.radio.RadioPlaybackManager
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
@@ -11,6 +16,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,7 +37,13 @@ data class RadioUiState(
     val searchQuery: String = "",
     val isSearching: Boolean = false,
     val error: String? = null,
-    val favoriteIds: Set<String> = emptySet()
+    val favoriteIds: Set<String> = emptySet(),
+    // Playback state
+    val isRadioPlaying: Boolean = false,
+    val isRadioBuffering: Boolean = false,
+    val currentPlayingStation: PlayableRadioStation? = null,
+    val currentMetadata: RadioMetadata? = null,
+    val signalStatus: RadioSignalStatus = RadioSignalStatus.UNKNOWN
 )
 
 enum class RadioTab {
@@ -42,7 +54,8 @@ enum class RadioTab {
 
 @HiltViewModel
 class RadioViewModel @Inject constructor(
-    private val radioRepository: RadioRepository
+    private val radioRepository: RadioRepository,
+    private val radioPlaybackManager: RadioPlaybackManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RadioUiState())
@@ -50,6 +63,26 @@ class RadioViewModel @Inject constructor(
 
     init {
         loadInitialData()
+        observePlaybackState()
+    }
+
+    /**
+     * Observe playback state from RadioPlaybackManager
+     */
+    private fun observePlaybackState() {
+        viewModelScope.launch {
+            radioPlaybackManager.state.collect { playbackState ->
+                _uiState.update {
+                    it.copy(
+                        isRadioPlaying = playbackState.isPlaying,
+                        isRadioBuffering = playbackState.isBuffering,
+                        currentPlayingStation = playbackState.currentStation,
+                        currentMetadata = playbackState.metadata,
+                        signalStatus = playbackState.signalStatus
+                    )
+                }
+            }
+        }
     }
 
     private fun loadInitialData() {
@@ -236,9 +269,65 @@ class RadioViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Play a radio station (from RadioBrowserStation or RadioStation)
+     */
     fun playStation(station: Any) {
-        // TODO: Implement radio playback using PlaybackService
-        // This will need to integrate with the existing Media3 player
+        val playable = when (station) {
+            is RadioBrowserStation -> PlayableRadioStationBuilder.fromRadioBrowser(
+                stationuuid = station.stationuuid,
+                name = station.name,
+                url = station.url,
+                urlResolved = station.urlResolved,
+                favicon = station.favicon,
+                country = station.country,
+                countrycode = station.countrycode,
+                tags = station.tags,
+                codec = station.codec,
+                bitrate = station.bitrate,
+                lastcheckok = station.lastcheckok
+            )
+            is RadioStation -> PlayableRadioStationBuilder.fromFavorite(
+                id = station.id,
+                stationUuid = station.stationUuid,
+                name = station.name,
+                url = station.url,
+                urlResolved = station.urlResolved,
+                favicon = station.favicon,
+                country = station.country,
+                countryCode = station.countryCode,
+                tags = station.tags,
+                codec = station.codec,
+                bitrate = station.bitrate,
+                lastCheckOk = station.lastCheckOk
+            )
+            else -> return
+        }
+
+        radioPlaybackManager.playStation(playable)
+    }
+
+    /**
+     * Toggle play/pause for current radio station
+     */
+    fun togglePlayPause() {
+        radioPlaybackManager.togglePlayPause()
+    }
+
+    /**
+     * Stop radio playback
+     */
+    fun stopRadio() {
+        radioPlaybackManager.stop()
+    }
+
+    /**
+     * Check if a station is currently playing
+     */
+    fun isStationPlaying(stationUuid: String?): Boolean {
+        val currentStation = _uiState.value.currentPlayingStation
+        return _uiState.value.isRadioPlaying &&
+               currentStation?.stationUuid == stationUuid
     }
 
     fun clearError() {
