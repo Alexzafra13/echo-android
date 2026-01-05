@@ -8,12 +8,14 @@ import com.echo.feature.albums.data.repository.AlbumsRepository
 import com.echo.feature.albums.domain.model.Album
 import com.echo.feature.albums.domain.model.AlbumWithTracks
 import com.echo.feature.albums.domain.model.Track
+import com.echo.core.media.player.PlayerState
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -35,6 +37,7 @@ class AlbumDetailViewModelTest {
     private lateinit var playTracksUseCase: PlayTracksUseCase
     private lateinit var player: EchoPlayer
     private lateinit var savedStateHandle: SavedStateHandle
+    private lateinit var playerStateFlow: MutableStateFlow<PlayerState>
 
     private val testAlbumId = "album123"
 
@@ -84,7 +87,10 @@ class AlbumDetailViewModelTest {
         Dispatchers.setMain(testDispatcher)
         albumsRepository = mockk(relaxed = true)
         playTracksUseCase = mockk(relaxed = true)
-        player = mockk(relaxed = true)
+        playerStateFlow = MutableStateFlow(PlayerState())
+        player = mockk(relaxed = true) {
+            every { state } returns playerStateFlow
+        }
         savedStateHandle = SavedStateHandle(mapOf("albumId" to testAlbumId))
     }
 
