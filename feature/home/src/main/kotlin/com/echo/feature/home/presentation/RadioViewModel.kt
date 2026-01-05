@@ -1,5 +1,6 @@
 package com.echo.feature.home.presentation
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echo.core.media.model.PlayableRadioStation
@@ -13,47 +14,52 @@ import com.echo.feature.home.data.model.RadioBrowserTag
 import com.echo.feature.home.data.model.RadioStation
 import com.echo.feature.home.data.repository.RadioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.Locale
 import javax.inject.Inject
 
 data class RadioUiState(
     val isLoading: Boolean = true,
-    val selectedTab: RadioTab = RadioTab.FAVORITES,
+    // User's country (auto-detected)
+    val userCountryCode: String = "ES",
+    val userCountryName: String = "España",
+    // Currently selected country for browsing
+    val selectedCountryCode: String = "ES",
+    val selectedCountryName: String = "España",
+    // Selected genre filter (null = all)
+    val selectedGenre: String? = null,
+    // Data
     val favorites: List<RadioStation> = emptyList(),
-    val topVoted: List<RadioBrowserStation> = emptyList(),
-    val popular: List<RadioBrowserStation> = emptyList(),
-    val searchResults: List<RadioBrowserStation> = emptyList(),
+    val stations: List<RadioBrowserStation> = emptyList(),
     val genres: List<RadioBrowserTag> = emptyList(),
     val countries: List<RadioBrowserCountry> = emptyList(),
-    val selectedGenre: String? = null,
-    val selectedCountry: String? = null,
-    val genreStations: List<RadioBrowserStation> = emptyList(),
-    val countryStations: List<RadioBrowserStation> = emptyList(),
+    // Search
     val searchQuery: String = "",
+    val searchResults: List<RadioBrowserStation> = emptyList(),
     val isSearching: Boolean = false,
-    val error: String? = null,
+    val isSearchActive: Boolean = false,
+    // Country picker
+    val showCountryPicker: Boolean = false,
+    // Favorites tracking
     val favoriteIds: Set<String> = emptySet(),
     // Playback state
     val isRadioPlaying: Boolean = false,
     val isRadioBuffering: Boolean = false,
     val currentPlayingStation: PlayableRadioStation? = null,
     val currentMetadata: RadioMetadata? = null,
-    val signalStatus: RadioSignalStatus = RadioSignalStatus.UNKNOWN
+    val signalStatus: RadioSignalStatus = RadioSignalStatus.UNKNOWN,
+    // Error
+    val error: String? = null
 )
-
-enum class RadioTab {
-    FAVORITES,
-    DISCOVER,
-    BROWSE
-}
 
 @HiltViewModel
 class RadioViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val radioRepository: RadioRepository,
     private val radioPlaybackManager: RadioPlaybackManager
 ) : ViewModel() {
@@ -62,13 +68,26 @@ class RadioViewModel @Inject constructor(
     val uiState: StateFlow<RadioUiState> = _uiState.asStateFlow()
 
     init {
+        detectUserCountry()
         loadInitialData()
         observePlaybackState()
+        observeFavorites()
     }
 
-    /**
-     * Observe playback state from RadioPlaybackManager
-     */
+    private fun detectUserCountry() {
+        val countryCode = Locale.getDefault().country.uppercase()
+        val countryName = Locale("", countryCode).displayCountry
+
+        _uiState.update {
+            it.copy(
+                userCountryCode = countryCode,
+                userCountryName = countryName,
+                selectedCountryCode = countryCode,
+                selectedCountryName = countryName
+            )
+        }
+    }
+
     private fun observePlaybackState() {
         viewModelScope.launch {
             radioPlaybackManager.state.collect { playbackState ->
@@ -85,61 +104,120 @@ class RadioViewModel @Inject constructor(
         }
     }
 
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            radioRepository.observeFavorites().collect { favorites ->
+                _uiState.update {
+                    it.copy(
+                        favorites = favorites,
+                        favoriteIds = favorites.mapNotNull { station -> station.stationUuid }.toSet()
+                    )
+                }
+            }
+        }
+    }
+
     private fun loadInitialData() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Load favorites first
-            radioRepository.getFavorites()
-                .onSuccess { favorites ->
-                    _uiState.update {
-                        it.copy(
-                            favorites = favorites,
-                            favoriteIds = favorites.mapNotNull { station -> station.stationUuid }.toSet()
-                        )
-                    }
-                }
-
-            // Load top voted and popular for discover
+            // Load genres
             launch {
-                radioRepository.getTopVoted(20)
-                    .onSuccess { stations ->
-                        _uiState.update { it.copy(topVoted = stations) }
-                    }
-            }
-
-            launch {
-                radioRepository.getPopular(20)
-                    .onSuccess { stations ->
-                        _uiState.update { it.copy(popular = stations) }
-                    }
-            }
-
-            // Load genres and countries for browsing
-            launch {
-                radioRepository.getTags(50)
+                radioRepository.getTags(30)
                     .onSuccess { tags ->
-                        _uiState.update { it.copy(genres = tags.sortedByDescending { it.stationcount }) }
+                        _uiState.update {
+                            it.copy(genres = tags.sortedByDescending { tag -> tag.stationcount })
+                        }
                     }
             }
 
+            // Load countries
             launch {
                 radioRepository.getCountries()
                     .onSuccess { countries ->
-                        _uiState.update { it.copy(countries = countries.sortedByDescending { it.stationcount }) }
+                        _uiState.update {
+                            it.copy(countries = countries.sortedByDescending { c -> c.stationcount })
+                        }
                     }
             }
 
-            _uiState.update { it.copy(isLoading = false) }
+            // Load stations for user's country
+            loadStationsForCountry(_uiState.value.selectedCountryCode)
         }
     }
 
-    fun selectTab(tab: RadioTab) {
-        _uiState.update { it.copy(selectedTab = tab) }
+    private fun loadStationsForCountry(countryCode: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+
+            radioRepository.getByCountry(countryCode, 100)
+                .onSuccess { stations ->
+                    _uiState.update {
+                        it.copy(
+                            stations = stations.sortedByDescending { s -> s.clickcount },
+                            isLoading = false
+                        )
+                    }
+                }
+                .onFailure {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+        }
+    }
+
+    fun selectCountry(country: RadioBrowserCountry) {
+        _uiState.update {
+            it.copy(
+                selectedCountryCode = country.isoCode,
+                selectedCountryName = country.name,
+                showCountryPicker = false,
+                selectedGenre = null
+            )
+        }
+        loadStationsForCountry(country.isoCode)
+    }
+
+    fun selectGenre(genre: String?) {
+        _uiState.update { it.copy(selectedGenre = genre) }
+
+        if (genre != null) {
+            // Filter current stations by genre or load new ones
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+
+                // Search stations with both country and tag
+                radioRepository.searchStations(
+                    countryCode = _uiState.value.selectedCountryCode,
+                    tag = genre,
+                    limit = 100
+                ).onSuccess { stations ->
+                    _uiState.update {
+                        it.copy(
+                            stations = stations.sortedByDescending { s -> s.clickcount },
+                            isLoading = false
+                        )
+                    }
+                }.onFailure {
+                    _uiState.update { it.copy(isLoading = false) }
+                }
+            }
+        } else {
+            // Reload all stations for country
+            loadStationsForCountry(_uiState.value.selectedCountryCode)
+        }
+    }
+
+    fun showCountryPicker() {
+        _uiState.update { it.copy(showCountryPicker = true) }
+    }
+
+    fun hideCountryPicker() {
+        _uiState.update { it.copy(showCountryPicker = false) }
     }
 
     fun onSearchQueryChange(query: String) {
-        _uiState.update { it.copy(searchQuery = query) }
+        _uiState.update { it.copy(searchQuery = query, isSearchActive = query.isNotEmpty()) }
+
         if (query.length >= 2) {
             searchStations(query)
         } else {
@@ -147,15 +225,25 @@ class RadioViewModel @Inject constructor(
         }
     }
 
+    fun clearSearch() {
+        _uiState.update {
+            it.copy(
+                searchQuery = "",
+                searchResults = emptyList(),
+                isSearchActive = false
+            )
+        }
+    }
+
     private fun searchStations(query: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isSearching = true) }
 
-            radioRepository.searchStations(name = query, limit = 50)
+            radioRepository.searchStations(name = query, limit = 30)
                 .onSuccess { results ->
                     _uiState.update {
                         it.copy(
-                            searchResults = results,
+                            searchResults = results.sortedByDescending { s -> s.clickcount },
                             isSearching = false
                         )
                     }
@@ -166,112 +254,26 @@ class RadioViewModel @Inject constructor(
         }
     }
 
-    fun selectGenre(genre: String) {
-        _uiState.update { it.copy(selectedGenre = genre, selectedCountry = null) }
-        loadGenreStations(genre)
-    }
-
-    private fun loadGenreStations(genre: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            radioRepository.getByTag(genre, 50)
-                .onSuccess { stations ->
-                    _uiState.update { it.copy(genreStations = stations, isLoading = false) }
-                }
-                .onFailure {
-                    _uiState.update { it.copy(isLoading = false) }
-                }
-        }
-    }
-
-    fun selectCountry(countryCode: String) {
-        _uiState.update { it.copy(selectedCountry = countryCode, selectedGenre = null) }
-        loadCountryStations(countryCode)
-    }
-
-    private fun loadCountryStations(countryCode: String) {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-
-            radioRepository.getByCountry(countryCode, 50)
-                .onSuccess { stations ->
-                    _uiState.update { it.copy(countryStations = stations, isLoading = false) }
-                }
-                .onFailure {
-                    _uiState.update { it.copy(isLoading = false) }
-                }
-        }
-    }
-
-    fun clearBrowseSelection() {
-        _uiState.update {
-            it.copy(
-                selectedGenre = null,
-                selectedCountry = null,
-                genreStations = emptyList(),
-                countryStations = emptyList()
-            )
-        }
-    }
-
     fun toggleFavorite(station: RadioBrowserStation) {
         viewModelScope.launch {
             val isFavorite = station.stationuuid in _uiState.value.favoriteIds
 
             if (isFavorite) {
-                // Find and delete
-                val favorite = _uiState.value.favorites.find { it.stationUuid == station.stationuuid }
-                favorite?.id?.let { id ->
-                    radioRepository.deleteFavorite(id)
-                        .onSuccess {
-                            _uiState.update { state ->
-                                state.copy(
-                                    favorites = state.favorites.filter { it.id != id },
-                                    favoriteIds = state.favoriteIds - station.stationuuid
-                                )
-                            }
-                        }
-                }
+                radioRepository.deleteFavoriteByUuid(station.stationuuid)
             } else {
-                // Add to favorites
                 radioRepository.saveFavorite(station)
-                    .onSuccess { savedStation ->
-                        _uiState.update { state ->
-                            state.copy(
-                                favorites = state.favorites + savedStation,
-                                favoriteIds = state.favoriteIds + station.stationuuid
-                            )
-                        }
-                    }
             }
         }
     }
 
     fun deleteFavorite(station: RadioStation) {
         viewModelScope.launch {
-            station.id?.let { id ->
-                radioRepository.deleteFavorite(id)
-                    .onSuccess {
-                        _uiState.update { state ->
-                            state.copy(
-                                favorites = state.favorites.filter { it.id != id },
-                                favoriteIds = station.stationUuid?.let { uuid ->
-                                    state.favoriteIds - uuid
-                                } ?: state.favoriteIds
-                            )
-                        }
-                    }
-                    .onFailure { error ->
-                        _uiState.update { it.copy(error = error.message) }
-                    }
+            station.stationUuid?.let { uuid ->
+                radioRepository.deleteFavoriteByUuid(uuid)
             }
         }
     }
 
-    /**
-     * Play a radio station (from RadioBrowserStation or RadioStation)
-     */
     fun playStation(station: Any) {
         val playable = when (station) {
             is RadioBrowserStation -> PlayableRadioStationBuilder.fromRadioBrowser(
@@ -307,27 +309,12 @@ class RadioViewModel @Inject constructor(
         radioPlaybackManager.playStation(playable)
     }
 
-    /**
-     * Toggle play/pause for current radio station
-     */
     fun togglePlayPause() {
         radioPlaybackManager.togglePlayPause()
     }
 
-    /**
-     * Stop radio playback
-     */
     fun stopRadio() {
         radioPlaybackManager.stop()
-    }
-
-    /**
-     * Check if a station is currently playing
-     */
-    fun isStationPlaying(stationUuid: String?): Boolean {
-        val currentStation = _uiState.value.currentPlayingStation
-        return _uiState.value.isRadioPlaying &&
-               currentStation?.stationUuid == stationUuid
     }
 
     fun clearError() {
@@ -335,6 +322,6 @@ class RadioViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadInitialData()
+        loadStationsForCountry(_uiState.value.selectedCountryCode)
     }
 }
