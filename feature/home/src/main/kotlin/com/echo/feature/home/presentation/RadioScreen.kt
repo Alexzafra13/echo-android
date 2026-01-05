@@ -1,7 +1,22 @@
 package com.echo.feature.home.presentation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +27,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,21 +39,19 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.SignalCellular4Bar
-import androidx.compose.material.icons.filled.SignalCellularConnectedNoInternet0Bar
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
@@ -46,8 +60,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -56,14 +68,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.echo.core.media.model.RadioSignalStatus
@@ -72,6 +93,11 @@ import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
 import com.echo.feature.home.data.model.RadioStation
+
+// Colors
+private val LiveGreen = Color(0xFF00C853)
+private val GlassWhite = Color.White.copy(alpha = 0.08f)
+private val GlassWhiteBorder = Color.White.copy(alpha = 0.12f)
 
 @Composable
 fun RadioScreen(
@@ -88,28 +114,20 @@ fun RadioScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 72.dp)
-                .padding(bottom = if (state.currentPlayingStation != null) 80.dp else 0.dp)
         ) {
-            // Header
-            Text(
-                text = "Radio",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            // Tabs
+            // Tabs with modern design
             TabRow(
                 selectedTabIndex = state.selectedTab.ordinal,
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = Color.Transparent,
                 contentColor = EchoCoral,
                 indicator = { tabPositions ->
-                    TabRowDefaults.Indicator(
+                    TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[state.selectedTab.ordinal]),
-                        color = EchoCoral
+                        color = EchoCoral,
+                        height = 3.dp
                     )
-                }
+                },
+                divider = {}
             ) {
                 RadioTab.entries.forEach { tab ->
                     Tab(
@@ -122,7 +140,8 @@ fun RadioScreen(
                                     RadioTab.DISCOVER -> "Descubrir"
                                     RadioTab.BROWSE -> "Explorar"
                                 },
-                                fontWeight = if (state.selectedTab == tab) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (state.selectedTab == tab) FontWeight.Bold else FontWeight.Normal,
+                                fontSize = 14.sp
                             )
                         },
                         selectedContentColor = EchoCoral,
@@ -131,7 +150,9 @@ fun RadioScreen(
                 }
             }
 
-            if (state.isLoading && state.favorites.isEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            if (state.isLoading && state.favorites.isEmpty() && state.topVoted.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -180,160 +201,125 @@ fun RadioScreen(
                 }
             }
         }
-
-        // Mini Player Bar
-        state.currentPlayingStation?.let { station ->
-            RadioMiniPlayer(
-                stationName = station.name,
-                metadata = state.currentMetadata?.displayText,
-                favicon = station.favicon,
-                isPlaying = state.isRadioPlaying,
-                isBuffering = state.isRadioBuffering,
-                signalStatus = state.signalStatus,
-                onPlayPause = viewModel::togglePlayPause,
-                onStop = viewModel::stopRadio,
-                modifier = Modifier.align(Alignment.BottomCenter)
-            )
-        }
     }
 }
 
 /**
- * Mini player bar shown at the bottom when radio is playing
+ * Live indicator badge with pulse animation
  */
 @Composable
-private fun RadioMiniPlayer(
-    stationName: String,
-    metadata: String?,
-    favicon: String?,
-    isPlaying: Boolean,
-    isBuffering: Boolean,
-    signalStatus: RadioSignalStatus,
-    onPlayPause: () -> Unit,
-    onStop: () -> Unit,
+private fun LiveBadge(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "live")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    Row(
+        modifier = modifier
+            .background(LiveGreen.copy(alpha = 0.9f), RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .alpha(alpha)
+                .background(Color.White, CircleShape)
+        )
+        Text(
+            text = "EN VIVO",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            fontSize = 10.sp
+        )
+    }
+}
+
+/**
+ * Modern pill-shaped search bar
+ */
+@Composable
+private fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    isSearching: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(16.dp)
+            .height(48.dp)
+            .clip(RoundedCornerShape(24.dp))
+            .background(GlassWhite)
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Station icon
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(EchoCoral.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (favicon != null) {
-                    AsyncImage(
-                        model = favicon,
-                        contentDescription = stationName,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Radio,
-                        contentDescription = null,
-                        tint = EchoCoral,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
-            // Station info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stationName,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (!metadata.isNullOrBlank()) {
-                    Text(
-                        text = metadata,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = EchoCoral,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                textStyle = TextStyle(
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 16.sp
+                ),
+                singleLine = true,
+                cursorBrush = SolidColor(EchoCoral),
+                decorationBox = { innerTextField ->
+                    Box {
+                        if (query.isEmpty()) {
+                            Text(
+                                text = "Buscar estaciones...",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 16.sp
+                            )
+                        }
+                        innerTextField()
+                    }
                 }
-            }
-
-            // Signal status indicator
-            SignalIndicator(
-                status = signalStatus,
-                isBuffering = isBuffering
             )
 
-            Spacer(modifier = Modifier.width(4.dp))
-
-            // Play/Pause button
-            IconButton(onClick = onPlayPause) {
-                if (isBuffering) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp,
-                        color = EchoCoral
-                    )
-                } else {
+            if (isSearching) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                    color = EchoCoral
+                )
+            } else if (query.isNotEmpty()) {
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(24.dp)
+                ) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                        tint = EchoCoral
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Limpiar",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-            }
-
-            // Stop button
-            IconButton(onClick = onStop) {
-                Icon(
-                    imageVector = Icons.Default.Stop,
-                    contentDescription = "Detener",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
         }
     }
-}
-
-/**
- * Signal quality indicator
- */
-@Composable
-private fun SignalIndicator(
-    status: RadioSignalStatus,
-    isBuffering: Boolean
-) {
-    val (icon, color) = when {
-        isBuffering -> Icons.Default.SignalCellular4Bar to Color.Yellow
-        status == RadioSignalStatus.GOOD -> Icons.Default.SignalCellular4Bar to Color.Green
-        status == RadioSignalStatus.WEAK -> Icons.Default.SignalCellular4Bar to Color.Yellow
-        status == RadioSignalStatus.ERROR -> Icons.Default.SignalCellularConnectedNoInternet0Bar to Color.Red
-        else -> Icons.Default.SignalCellular4Bar to MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Icon(
-        imageVector = icon,
-        contentDescription = "Estado de señal",
-        tint = color,
-        modifier = Modifier.size(20.dp)
-    )
 }
 
 @Composable
@@ -350,32 +336,44 @@ private fun FavoritesTab(
             contentAlignment = Alignment.Center
         ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(32.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Radio,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(64.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(GlassWhite, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Radio,
+                        contentDescription = null,
+                        tint = EchoCoral.copy(alpha = 0.7f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "Sin estaciones favoritas",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Explora y agrega estaciones",
+                    text = "Explora y guarda tus estaciones preferidas",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     } else {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(favorites) { station ->
                 val isCurrentlyPlaying = isPlaying && station.stationUuid == currentPlayingUuid
@@ -393,34 +391,42 @@ private fun FavoritesTab(
 @Composable
 private fun FavoriteStationCard(
     station: RadioStation,
-    isCurrentlyPlaying: Boolean = false,
+    isCurrentlyPlaying: Boolean,
     onPlay: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        label = "scale"
+    )
+
+    val cardColor by animateColorAsState(
+        targetValue = if (isCurrentlyPlaying) EchoCoral.copy(alpha = 0.15f) else GlassWhite,
+        label = "cardColor"
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onPlay),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentlyPlaying)
-                EchoCoral.copy(alpha = 0.1f)
-            else
-                MaterialTheme.colorScheme.surface
-        )
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onPlay
+            ),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Station icon/favicon with playing indicator
+        Column {
+            // Cover image
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(EchoCoral.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (station.favicon != null) {
                     AsyncImage(
@@ -430,87 +436,94 @@ private fun FavoriteStationCard(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Radio,
-                        contentDescription = null,
-                        tint = EchoCoral,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                // Playing overlay
-                if (isCurrentlyPlaying) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Radio,
-                            contentDescription = "Reproduciendo",
-                            tint = EchoCoral,
-                            modifier = Modifier.size(24.dp)
+                            contentDescription = null,
+                            tint = EchoCoral.copy(alpha = 0.5f),
+                            modifier = Modifier.size(48.dp)
                         )
                     }
                 }
+
+                // Live badge
+                if (isCurrentlyPlaying) {
+                    LiveBadge(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
+
+                // Play button overlay
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(40.dp)
+                        .shadow(8.dp, CircleShape)
+                        .background(EchoCoral, CircleShape)
+                        .clickable(onClick = onPlay),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            // Info
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = station.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    station.countryCode?.let { code ->
+                        Text(
+                            text = countryCodeToEmoji(code),
+                            fontSize = 12.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
                     Text(
-                        text = station.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold,
+                        text = station.country ?: "Internacional",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (isCurrentlyPlaying) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "EN VIVO",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            modifier = Modifier
-                                .background(EchoCoral, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-                station.country?.let { country ->
-                    Text(
-                        text = country,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.weight(1f)
                     )
                 }
-                if (station.displayTags.isNotEmpty()) {
+
+                // Quality info
+                if (station.codec != null || station.bitrate != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = station.displayTags.take(2).joinToString(" • "),
+                        text = listOfNotNull(
+                            station.codec,
+                            station.bitrate?.let { "${it}kbps" }
+                        ).joinToString(" • "),
                         style = MaterialTheme.typography.labelSmall,
-                        color = EchoCoral,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        color = EchoCoral.copy(alpha = 0.8f)
                     )
                 }
-            }
-
-            IconButton(onClick = onPlay) {
-                Icon(
-                    imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isCurrentlyPlaying) "Pausar" else "Reproducir",
-                    tint = EchoCoral
-                )
-            }
-
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Eliminar",
-                    tint = MaterialTheme.colorScheme.error
-                )
             }
         }
     }
@@ -533,75 +546,61 @@ private fun DiscoverTab(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Search field
+        // Search bar
         item {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar estaciones...") },
-                leadingIcon = {
-                    Icon(imageVector = Icons.Default.Search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (isSearching) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = EchoCoral
-                        )
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = EchoCoral,
-                    cursorColor = EchoCoral
-                )
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange,
+                isSearching = isSearching
             )
         }
 
         // Search results
-        if (searchQuery.length >= 2 && searchResults.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Resultados de búsqueda",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            items(searchResults.take(10)) { station ->
-                val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
-                RadioBrowserStationCard(
-                    station = station,
-                    isFavorite = station.stationuuid in favoriteIds,
-                    isCurrentlyPlaying = isCurrentlyPlaying,
-                    onPlay = { onPlay(station) },
-                    onToggleFavorite = { onToggleFavorite(station) }
-                )
+        if (searchQuery.length >= 2) {
+            if (searchResults.isNotEmpty()) {
+                item {
+                    SectionHeader(
+                        icon = Icons.Default.Search,
+                        title = "Resultados",
+                        iconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                items(searchResults.take(10)) { station ->
+                    val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
+                    StationListItem(
+                        station = station,
+                        isFavorite = station.stationuuid in favoriteIds,
+                        isCurrentlyPlaying = isCurrentlyPlaying,
+                        onPlay = { onPlay(station) },
+                        onToggleFavorite = { onToggleFavorite(station) }
+                    )
+                }
+            } else if (!isSearching) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No se encontraron estaciones",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         } else {
             // Top Voted Section
             if (topVoted.isNotEmpty()) {
                 item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Star,
-                            contentDescription = null,
-                            tint = Color(0xFFFFD700),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Más votadas",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    SectionHeader(
+                        icon = Icons.Default.Star,
+                        title = "Más votadas",
+                        iconColor = Color(0xFFFFD700)
+                    )
                 }
                 item {
                     LazyRow(
@@ -609,7 +608,7 @@ private fun DiscoverTab(
                     ) {
                         items(topVoted) { station ->
                             val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
-                            CompactRadioCard(
+                            StationCard(
                                 station = station,
                                 isFavorite = station.stationuuid in favoriteIds,
                                 isCurrentlyPlaying = isCurrentlyPlaying,
@@ -624,22 +623,11 @@ private fun DiscoverTab(
             // Popular Section
             if (popular.isNotEmpty()) {
                 item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.TrendingUp,
-                            contentDescription = null,
-                            tint = EchoCoral,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Populares",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                    SectionHeader(
+                        icon = Icons.Default.TrendingUp,
+                        title = "Populares",
+                        iconColor = EchoCoral
+                    )
                 }
                 item {
                     LazyRow(
@@ -647,7 +635,7 @@ private fun DiscoverTab(
                     ) {
                         items(popular) { station ->
                             val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
-                            CompactRadioCard(
+                            StationCard(
                                 station = station,
                                 isFavorite = station.stationuuid in favoriteIds,
                                 isCurrentlyPlaying = isCurrentlyPlaying,
@@ -663,34 +651,70 @@ private fun DiscoverTab(
 }
 
 @Composable
-private fun CompactRadioCard(
+private fun SectionHeader(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    iconColor: Color
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = iconColor,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun StationCard(
     station: RadioBrowserStation,
     isFavorite: Boolean,
-    isCurrentlyPlaying: Boolean = false,
+    isCurrentlyPlaying: Boolean,
     onPlay: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        label = "scale"
+    )
+
+    val cardColor by animateColorAsState(
+        targetValue = if (isCurrentlyPlaying) EchoCoral.copy(alpha = 0.15f) else GlassWhite,
+        label = "cardColor"
+    )
+
     Card(
         modifier = Modifier
             .width(160.dp)
-            .clickable(onClick = onPlay),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentlyPlaying)
-                EchoCoral.copy(alpha = 0.15f)
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(12.dp)
+            .scale(scale)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onPlay
+            ),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
+        Column {
+            // Cover
             Box(
                 modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(EchoCoral.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 if (station.favicon.isNotEmpty()) {
                     AsyncImage(
@@ -700,88 +724,103 @@ private fun CompactRadioCard(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Radio,
-                        contentDescription = null,
-                        tint = EchoCoral,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-                // Playing indicator overlay
-                if (isCurrentlyPlaying) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Radio,
-                            contentDescription = "Reproduciendo",
-                            tint = EchoCoral,
-                            modifier = Modifier.size(24.dp)
+                            contentDescription = null,
+                            tint = EchoCoral.copy(alpha = 0.5f),
+                            modifier = Modifier.size(40.dp)
                         )
                     }
                 }
+
+                // Live badge
+                if (isCurrentlyPlaying) {
+                    LiveBadge(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
+
+                // Favorite button
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                        .size(32.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = null,
+                        tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Play button
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .size(36.dp)
+                        .shadow(4.dp, CircleShape)
+                        .background(EchoCoral, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Info
+            Column(
+                modifier = Modifier.padding(10.dp)
+            ) {
                 Text(
                     text = station.name,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
-                    maxLines = if (isCurrentlyPlaying) 1 else 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-            }
 
-            if (isCurrentlyPlaying) {
-                Text(
-                    text = "EN VIVO",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .background(EchoCoral, RoundedCornerShape(4.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            } else {
-                Text(
-                    text = station.country.ifEmpty { "Internacional" },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-            }
+                Spacer(modifier = Modifier.height(2.dp))
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onPlay,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isCurrentlyPlaying) "Pausar" else "Reproducir",
-                        tint = EchoCoral
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (station.countrycode.isNotEmpty()) {
+                        Text(
+                            text = countryCodeToEmoji(station.countrycode),
+                            fontSize = 11.sp
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                    }
+                    Text(
+                        text = station.country.ifEmpty { "Internacional" },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                IconButton(
-                    onClick = onToggleFavorite,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (isFavorite) "Quitar de favoritos" else "Agregar a favoritos",
-                        tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
+
+                // Quality badge
+                if (station.bitrate > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${station.codec} • ${station.bitrate}kbps",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = EchoCoral.copy(alpha = 0.8f),
+                        fontSize = 10.sp
                     )
                 }
             }
@@ -790,122 +829,130 @@ private fun CompactRadioCard(
 }
 
 @Composable
-private fun RadioBrowserStationCard(
+private fun StationListItem(
     station: RadioBrowserStation,
     isFavorite: Boolean,
-    isCurrentlyPlaying: Boolean = false,
+    isCurrentlyPlaying: Boolean,
     onPlay: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
-    Card(
+    val cardColor by animateColorAsState(
+        targetValue = if (isCurrentlyPlaying) EchoCoral.copy(alpha = 0.12f) else Color.Transparent,
+        label = "cardColor"
+    )
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onPlay),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isCurrentlyPlaying)
-                EchoCoral.copy(alpha = 0.1f)
-            else
-                MaterialTheme.colorScheme.surface
-        )
+            .clip(RoundedCornerShape(12.dp))
+            .background(cardColor)
+            .clickable(onClick = onPlay)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        // Cover
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(56.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(GlassWhite)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(EchoCoral.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (station.favicon.isNotEmpty()) {
-                    AsyncImage(
-                        model = station.favicon,
-                        contentDescription = station.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
+            if (station.favicon.isNotEmpty()) {
+                AsyncImage(
+                    model = station.favicon,
+                    contentDescription = station.name,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         imageVector = Icons.Default.Radio,
                         contentDescription = null,
-                        tint = EchoCoral
+                        tint = EchoCoral.copy(alpha = 0.6f),
+                        modifier = Modifier.size(28.dp)
                     )
                 }
-                // Playing indicator overlay
+            }
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        // Info
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = station.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
                 if (isCurrentlyPlaying) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Radio,
-                            contentDescription = "Reproduciendo",
-                            tint = EchoCoral,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    LiveBadge()
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (station.countrycode.isNotEmpty()) {
                     Text(
-                        text = station.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
+                        text = countryCodeToEmoji(station.countrycode),
+                        fontSize = 12.sp
                     )
-                    if (isCurrentlyPlaying) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "EN VIVO",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            modifier = Modifier
-                                .background(EchoCoral, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
+                    Spacer(modifier = Modifier.width(4.dp))
                 }
                 Text(
                     text = station.country.ifEmpty { "Internacional" },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (station.displayTags.isNotEmpty()) {
+                if (station.bitrate > 0) {
                     Text(
-                        text = station.displayTags.take(3).joinToString(" • "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = EchoCoral
+                        text = " • ${station.bitrate}kbps",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            IconButton(onClick = onPlay) {
-                Icon(
-                    imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isCurrentlyPlaying) "Pausar" else "Reproducir",
-                    tint = EchoCoral
+            if (station.displayTags.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = station.displayTags.take(2).joinToString(" • "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = EchoCoral.copy(alpha = 0.8f)
                 )
             }
+        }
 
-            IconButton(onClick = onToggleFavorite) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Agregar a favoritos",
-                    tint = if (isFavorite) Color.Red else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        // Actions
+        IconButton(
+            onClick = onPlay,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = EchoCoral
+            )
+        }
+
+        IconButton(
+            onClick = onToggleFavorite,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = null,
+                tint = if (isFavorite) Color(0xFFFF4081) else MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -928,11 +975,12 @@ private fun BrowseTab(
     onPlay: (RadioBrowserStation) -> Unit,
     onToggleFavorite: (RadioBrowserStation) -> Unit
 ) {
-    // If a genre or country is selected, show stations
-    if (selectedGenre != null || selectedCountry != null) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+    AnimatedVisibility(
+        visible = selectedGenre != null || selectedCountry != null,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             // Back header
             Row(
                 modifier = Modifier
@@ -948,8 +996,9 @@ private fun BrowseTab(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = selectedGenre ?: selectedCountry ?: "",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = selectedGenre?.replaceFirstChar { it.uppercase() }
+                        ?: selectedCountry ?: "",
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -963,13 +1012,15 @@ private fun BrowseTab(
                 }
             } else {
                 val stations = if (selectedGenre != null) genreStations else countryStations
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(stations) { station ->
                         val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
-                        RadioBrowserStationCard(
+                        StationCard(
                             station = station,
                             isFavorite = station.stationuuid in favoriteIds,
                             isCurrentlyPlaying = isCurrentlyPlaying,
@@ -980,37 +1031,31 @@ private fun BrowseTab(
                 }
             }
         }
-    } else {
-        // Show genres and countries grid
+    }
+
+    AnimatedVisibility(
+        visible = selectedGenre == null && selectedCountry == null,
+        enter = fadeIn() + expandVertically(),
+        exit = fadeOut() + shrinkVertically()
+    ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             // Genres section
             item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = EchoCoral,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Géneros",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                SectionHeader(
+                    icon = Icons.Default.MusicNote,
+                    title = "Géneros",
+                    iconColor = EchoCoral
+                )
             }
             item {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(genres.take(20)) { genre ->
+                    items(genres.take(25)) { genre ->
                         GenreChip(
                             name = genre.name,
                             count = genre.stationcount,
@@ -1022,27 +1067,15 @@ private fun BrowseTab(
 
             // Countries section
             item {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Public,
-                        contentDescription = null,
-                        tint = EchoCoral,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Países",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                SectionHeader(
+                    icon = Icons.Default.Public,
+                    title = "Países",
+                    iconColor = EchoCoral
+                )
             }
             item {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(countries.take(30)) { country ->
                         CountryChip(
@@ -1058,34 +1091,55 @@ private fun BrowseTab(
     }
 }
 
+// Genre chip colors
+private val genreColors = listOf(
+    Color(0xFFFF6B6B) to Color(0xFFFF8E8E),
+    Color(0xFF4ECDC4) to Color(0xFF7FDED8),
+    Color(0xFFFFE66D) to Color(0xFFFFED8A),
+    Color(0xFF95E1D3) to Color(0xFFB8EDE3),
+    Color(0xFFF38181) to Color(0xFFF7A5A5),
+    Color(0xFFAA96DA) to Color(0xFFC4B5E8),
+    Color(0xFFFCBAD3) to Color(0xFFFDD4E3),
+    Color(0xFFA8D8EA) to Color(0xFFC5E5F1),
+)
+
 @Composable
 private fun GenreChip(
     name: String,
     count: Int,
     onClick: () -> Unit
 ) {
+    val colorIndex = name.hashCode().let { kotlin.math.abs(it) % genreColors.size }
+    val (startColor, endColor) = genreColors[colorIndex]
+
     Card(
         modifier = Modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = EchoCoral.copy(alpha = 0.15f)
-        ),
-        shape = RoundedCornerShape(20.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .background(
+                    Brush.linearGradient(listOf(startColor, endColor)),
+                    RoundedCornerShape(16.dp)
+                )
+                .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
-            Text(
-                text = name.replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = EchoCoral
-            )
-            Text(
-                text = "$count estaciones",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = name.replaceFirstChar { it.uppercase() },
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = "$count",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+            }
         }
     }
 }
@@ -1098,24 +1152,26 @@ private fun CountryChip(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        shape = RoundedCornerShape(12.dp)
+        modifier = Modifier
+            .width(90.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = GlassWhite),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = countryCodeToEmoji(code),
-                style = MaterialTheme.typography.headlineMedium
+                fontSize = 32.sp
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = name,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -1129,14 +1185,9 @@ private fun CountryChip(
     }
 }
 
-/**
- * Convert country code (e.g., "US") to flag emoji
- */
 private fun countryCodeToEmoji(countryCode: String): String {
     if (countryCode.length != 2) return "🌍"
-
     val firstLetter = Character.codePointAt(countryCode.uppercase(), 0) - 0x41 + 0x1F1E6
     val secondLetter = Character.codePointAt(countryCode.uppercase(), 1) - 0x41 + 0x1F1E6
-
     return String(Character.toChars(firstLetter)) + String(Character.toChars(secondLetter))
 }
