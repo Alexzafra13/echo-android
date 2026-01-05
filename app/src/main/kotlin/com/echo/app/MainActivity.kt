@@ -231,7 +231,7 @@ class MainActivity : ComponentActivity() {
                                     isVisible = showMiniPlayer,
                                     isPlaying = radioState.isPlaying,
                                     trackTitle = metadata?.title ?: station?.name ?: "Radio",
-                                    artistName = metadata?.artist ?: station?.tags ?: "",
+                                    artistName = metadata?.artist ?: station?.tags?.joinToString(", ") ?: "",
                                     coverUrl = station?.favicon,
                                     progress = 0f, // Radio doesn't have progress
                                     dominantColor = dominantColor.value,
