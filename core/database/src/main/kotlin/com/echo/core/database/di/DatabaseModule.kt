@@ -6,6 +6,7 @@ import com.echo.core.database.EchoDatabase
 import com.echo.core.database.dao.CachedAlbumDao
 import com.echo.core.database.dao.CachedPlaylistDao
 import com.echo.core.database.dao.CachedTrackDao
+import com.echo.core.database.dao.FavoriteRadioStationDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,5 +45,10 @@ object DatabaseModule {
     @Provides
     fun provideCachedPlaylistDao(database: EchoDatabase): CachedPlaylistDao {
         return database.cachedPlaylistDao()
+    }
+
+    @Provides
+    fun provideFavoriteRadioStationDao(database: EchoDatabase): FavoriteRadioStationDao {
+        return database.favoriteRadioStationDao()
     }
 }

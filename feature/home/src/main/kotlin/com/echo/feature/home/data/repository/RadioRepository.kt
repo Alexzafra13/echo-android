@@ -1,35 +1,26 @@
 package com.echo.feature.home.data.repository
 
 import android.util.Log
-import com.echo.core.datastore.preferences.ServerPreferences
-import com.echo.core.network.api.ApiClientFactory
-import com.echo.feature.home.data.api.RadioApi
+import com.echo.core.database.dao.FavoriteRadioStationDao
+import com.echo.core.database.entity.FavoriteRadioStationEntity
 import com.echo.feature.home.data.api.RadioBrowserApiService
-import com.echo.feature.home.data.model.CreateCustomStationDto
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
 import com.echo.feature.home.data.model.RadioStation
-import com.echo.feature.home.data.model.toSaveDto
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class RadioRepository @Inject constructor(
-    private val apiClientFactory: ApiClientFactory,
-    private val serverPreferences: ServerPreferences,
-    private val radioBrowserApi: RadioBrowserApiService
+    private val radioBrowserApi: RadioBrowserApiService,
+    private val favoriteRadioStationDao: FavoriteRadioStationDao
 ) {
 
     companion object {
         private const val TAG = "RadioRepository"
-    }
-
-    private suspend fun getApi(): RadioApi {
-        val server = serverPreferences.activeServer.first()
-            ?: throw IllegalStateException("No active server")
-        return apiClientFactory.getClient(server.url).create(RadioApi::class.java)
     }
 
     // ============================================
@@ -102,21 +93,46 @@ class RadioRepository @Inject constructor(
     }.onFailure { Log.e(TAG, "Error getting countries", it) }
 
     // ============================================
-    // Favorites
+    // Local Favorites (stored in Room database)
     // ============================================
+
+    /**
+     * Get all favorite stations as Flow
+     */
+    fun observeFavorites(): Flow<List<RadioStation>> {
+        return favoriteRadioStationDao.getAllFavorites().map { entities ->
+            entities.map { it.toRadioStation() }
+        }
+    }
+
+    /**
+     * Get all favorite station IDs as Flow
+     */
+    fun observeFavoriteIds(): Flow<List<String>> {
+        return favoriteRadioStationDao.observeAllFavoriteIds()
+    }
 
     /**
      * Get user's favorite stations
      */
     suspend fun getFavorites(): Result<List<RadioStation>> = runCatching {
-        getApi().getFavorites()
+        favoriteRadioStationDao.getAllFavoritesList().map { it.toRadioStation() }
+    }
+
+    /**
+     * Check if a station is favorite
+     */
+    suspend fun isFavorite(stationUuid: String): Boolean {
+        return favoriteRadioStationDao.isFavorite(stationUuid)
     }
 
     /**
      * Save a station from Radio Browser API as favorite
      */
     suspend fun saveFavorite(station: RadioBrowserStation): Result<RadioStation> = runCatching {
-        getApi().saveFavoriteFromApi(station.toSaveDto())
+        val entity = station.toFavoriteEntity()
+        val id = favoriteRadioStationDao.insert(entity)
+        entity.copy(id = id).toRadioStation()
     }
 
     /**
@@ -130,22 +146,79 @@ class RadioRepository @Inject constructor(
         country: String? = null,
         tags: String? = null
     ): Result<RadioStation> = runCatching {
-        getApi().createCustomStation(
-            CreateCustomStationDto(
-                name = name,
-                url = url,
-                homepage = homepage,
-                favicon = favicon,
-                country = country,
-                tags = tags
-            )
+        val entity = FavoriteRadioStationEntity(
+            stationUuid = "custom_${System.currentTimeMillis()}",
+            name = name,
+            url = url,
+            homepage = homepage,
+            favicon = favicon,
+            country = country,
+            tags = tags
         )
+        val id = favoriteRadioStationDao.insert(entity)
+        entity.copy(id = id).toRadioStation()
     }
 
     /**
-     * Delete a favorite station
+     * Delete a favorite station by ID
      */
     suspend fun deleteFavorite(stationId: String): Result<Unit> = runCatching {
-        getApi().deleteFavorite(stationId)
+        favoriteRadioStationDao.deleteById(stationId.toLong())
+    }
+
+    /**
+     * Delete a favorite station by station UUID
+     */
+    suspend fun deleteFavoriteByUuid(stationUuid: String): Result<Unit> = runCatching {
+        favoriteRadioStationDao.deleteByStationUuid(stationUuid)
+    }
+
+    // ============================================
+    // Conversion functions
+    // ============================================
+
+    private fun FavoriteRadioStationEntity.toRadioStation(): RadioStation {
+        return RadioStation(
+            id = id.toString(),
+            stationUuid = stationUuid,
+            name = name,
+            url = url,
+            urlResolved = urlResolved,
+            homepage = homepage,
+            favicon = favicon,
+            country = country,
+            countryCode = countryCode,
+            state = state,
+            language = language,
+            tags = tags,
+            codec = codec,
+            bitrate = bitrate,
+            votes = votes,
+            clickCount = clickCount,
+            lastCheckOk = lastCheckOk,
+            source = "local",
+            isFavorite = true
+        )
+    }
+
+    private fun RadioBrowserStation.toFavoriteEntity(): FavoriteRadioStationEntity {
+        return FavoriteRadioStationEntity(
+            stationUuid = stationuuid,
+            name = name,
+            url = url,
+            urlResolved = urlResolved.ifEmpty { null },
+            homepage = homepage.ifEmpty { null },
+            favicon = favicon.ifEmpty { null },
+            country = country.ifEmpty { null },
+            countryCode = countrycode.ifEmpty { null },
+            state = state.ifEmpty { null },
+            language = language.ifEmpty { null },
+            tags = tags.ifEmpty { null },
+            codec = codec.ifEmpty { null },
+            bitrate = if (bitrate > 0) bitrate else null,
+            votes = if (votes > 0) votes else null,
+            clickCount = if (clickcount > 0) clickcount else null,
+            lastCheckOk = lastcheckok == 1
+        )
     }
 }
