@@ -1,5 +1,6 @@
 package com.echo.core.media.radio
 
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.echo.core.media.model.PlayableRadioStation
@@ -39,9 +40,11 @@ class RadioPlaybackIntegrationTest {
     private lateinit var exoPlayer: ExoPlayer
     private lateinit var metadataService: RadioMetadataService
     private lateinit var metadataFlow: MutableStateFlow<RadioMetadata?>
+    private lateinit var mediaItemFactory: MediaItemFactory
     private lateinit var radioPlaybackManager: RadioPlaybackManager
 
     private var playerListener: Player.Listener? = null
+    private lateinit var mockMediaItem: MediaItem
 
     private val stationA = PlayableRadioStation(
         id = "1",
@@ -77,6 +80,8 @@ class RadioPlaybackIntegrationTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
+        mockMediaItem = mockk(relaxed = true)
+
         exoPlayer = mockk(relaxed = true) {
             every { addListener(any()) } answers {
                 playerListener = firstArg()
@@ -92,7 +97,12 @@ class RadioPlaybackIntegrationTest {
             every { metadata } returns metadataFlow
         }
 
-        radioPlaybackManager = RadioPlaybackManager(echoPlayer, metadataService)
+        mediaItemFactory = mockk(relaxed = true) {
+            every { createFromStation(any()) } returns mockMediaItem
+            every { createMetadata(any(), any()) } returns mockk(relaxed = true)
+        }
+
+        radioPlaybackManager = RadioPlaybackManager(echoPlayer, metadataService, mediaItemFactory)
     }
 
     @After

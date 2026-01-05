@@ -2,11 +2,11 @@ package com.echo.core.media.radio
 
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import app.cash.turbine.test
 import com.echo.core.media.model.PlayableRadioStation
 import com.echo.core.media.model.RadioMetadata
 import com.echo.core.media.model.RadioSignalStatus
 import com.echo.core.media.player.EchoPlayer
+import androidx.media3.common.MediaItem
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -34,10 +34,14 @@ class RadioPlaybackManagerTest {
     private lateinit var exoPlayer: ExoPlayer
     private lateinit var metadataService: RadioMetadataService
     private lateinit var metadataFlow: MutableStateFlow<RadioMetadata?>
+    private lateinit var mediaItemFactory: MediaItemFactory
     private lateinit var radioPlaybackManager: RadioPlaybackManager
 
     // Store captured listener
     private var playerListener: Player.Listener? = null
+
+    // Mock MediaItem to avoid Android dependencies
+    private lateinit var mockMediaItem: MediaItem
 
     private val testStation = PlayableRadioStation(
         id = "1",
@@ -58,6 +62,8 @@ class RadioPlaybackManagerTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
+        mockMediaItem = mockk(relaxed = true)
+
         exoPlayer = mockk(relaxed = true) {
             every { addListener(any()) } answers {
                 playerListener = firstArg()
@@ -73,7 +79,12 @@ class RadioPlaybackManagerTest {
             every { metadata } returns metadataFlow
         }
 
-        radioPlaybackManager = RadioPlaybackManager(echoPlayer, metadataService)
+        mediaItemFactory = mockk(relaxed = true) {
+            every { createFromStation(any()) } returns mockMediaItem
+            every { createMetadata(any(), any()) } returns mockk(relaxed = true)
+        }
+
+        radioPlaybackManager = RadioPlaybackManager(echoPlayer, metadataService, mediaItemFactory)
     }
 
     @After
