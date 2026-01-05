@@ -2,20 +2,17 @@ package com.echo.core.media.radio
 
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import app.cash.turbine.test
 import com.echo.core.media.model.PlayableRadioStation
 import com.echo.core.media.model.RadioMetadata
 import com.echo.core.media.model.RadioSignalStatus
 import com.echo.core.media.player.EchoPlayer
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -36,7 +33,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class RadioPlaybackIntegrationTest {
 
-    private val testDispatcher = StandardTestDispatcher()
+    private val testDispatcher = UnconfinedTestDispatcher()
 
     private lateinit var echoPlayer: EchoPlayer
     private lateinit var exoPlayer: ExoPlayer
@@ -44,7 +41,7 @@ class RadioPlaybackIntegrationTest {
     private lateinit var metadataFlow: MutableStateFlow<RadioMetadata?>
     private lateinit var radioPlaybackManager: RadioPlaybackManager
 
-    private val listenerSlot = slot<Player.Listener>()
+    private var playerListener: Player.Listener? = null
 
     private val stationA = PlayableRadioStation(
         id = "1",
@@ -81,7 +78,9 @@ class RadioPlaybackIntegrationTest {
         Dispatchers.setMain(testDispatcher)
 
         exoPlayer = mockk(relaxed = true) {
-            every { addListener(capture(listenerSlot)) } returns Unit
+            every { addListener(any()) } answers {
+                playerListener = firstArg()
+            }
         }
 
         echoPlayer = mockk(relaxed = true) {
@@ -99,6 +98,7 @@ class RadioPlaybackIntegrationTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        playerListener = null
     }
 
     // ============================================
@@ -109,27 +109,21 @@ class RadioPlaybackIntegrationTest {
     fun `complete flow - start playing, receive metadata, stop`() = runTest {
         // Step 1: Start playing station A
         radioPlaybackManager.playStation(stationA)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Verify station is set
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertTrue(state.isRadioMode)
-            assertEquals(stationA, state.currentStation)
-            assertTrue(state.isBuffering)
-        }
+        var state = radioPlaybackManager.state.value
+        assertTrue(state.isRadioMode)
+        assertEquals(stationA, state.currentStation)
+        assertTrue(state.isBuffering)
 
         // Step 2: Simulate player becomes ready
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
+        playerListener?.onIsPlayingChanged(true)
 
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertTrue(state.isPlaying)
-            assertFalse(state.isBuffering)
-            assertEquals(RadioSignalStatus.GOOD, state.signalStatus)
-        }
+        state = radioPlaybackManager.state.value
+        assertTrue(state.isPlaying)
+        assertFalse(state.isBuffering)
+        assertEquals(RadioSignalStatus.GOOD, state.signalStatus)
 
         // Step 3: Receive metadata from SSE
         val metadata = RadioMetadata(
@@ -139,26 +133,20 @@ class RadioPlaybackIntegrationTest {
             song = null
         )
         radioPlaybackManager.updateMetadata(metadata)
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertNotNull(state.metadata)
-            assertEquals("Current Song", state.metadata?.title)
-            assertEquals("Test Artist", state.metadata?.artist)
-        }
+        state = radioPlaybackManager.state.value
+        assertNotNull(state.metadata)
+        assertEquals("Current Song", state.metadata?.title)
+        assertEquals("Test Artist", state.metadata?.artist)
 
         // Step 4: Stop playback
         radioPlaybackManager.stop()
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertFalse(state.isRadioMode)
-            assertFalse(state.isPlaying)
-            assertNull(state.currentStation)
-            assertNull(state.metadata)
-        }
+        state = radioPlaybackManager.state.value
+        assertFalse(state.isRadioMode)
+        assertFalse(state.isPlaying)
+        assertNull(state.currentStation)
+        assertNull(state.metadata)
 
         // Verify metadata service disconnected
         verify { metadataService.disconnect() }
@@ -168,25 +156,20 @@ class RadioPlaybackIntegrationTest {
     fun `switching stations clears previous state`() = runTest {
         // Start with station A
         radioPlaybackManager.playStation(stationA)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Add metadata for station A
         radioPlaybackManager.updateMetadata(
             RadioMetadata("station-a-uuid", "Song A", "Artist A", null)
         )
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Switch to station B
         radioPlaybackManager.playStation(stationB)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Verify state is reset for new station
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertEquals(stationB, state.currentStation)
-            assertNull(state.metadata) // Previous metadata cleared
-            assertTrue(state.isBuffering) // Back to buffering state
-        }
+        val state = radioPlaybackManager.state.value
+        assertEquals(stationB, state.currentStation)
+        assertNull(state.metadata) // Previous metadata cleared
+        assertTrue(state.isBuffering) // Back to buffering state
 
         // Verify disconnect was called before connecting to new station
         verify(exactly = 2) { metadataService.disconnect() }
@@ -197,30 +180,25 @@ class RadioPlaybackIntegrationTest {
     fun `pause and resume flow`() = runTest {
         // Start playing
         radioPlaybackManager.playStation(stationA)
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
+        playerListener?.onIsPlayingChanged(true)
 
         // Verify playing
         assertTrue(radioPlaybackManager.state.value.isPlaying)
 
         // Pause
         radioPlaybackManager.pause()
-        listenerSlot.captured.onIsPlayingChanged(false)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onIsPlayingChanged(false)
 
         // Verify paused but still in radio mode
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertFalse(state.isPlaying)
-            assertTrue(state.isRadioMode)
-            assertEquals(stationA, state.currentStation)
-        }
+        var state = radioPlaybackManager.state.value
+        assertFalse(state.isPlaying)
+        assertTrue(state.isRadioMode)
+        assertEquals(stationA, state.currentStation)
 
         // Resume
         radioPlaybackManager.resume()
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onIsPlayingChanged(true)
 
         // Verify playing again
         assertTrue(radioPlaybackManager.state.value.isPlaying)
@@ -229,21 +207,19 @@ class RadioPlaybackIntegrationTest {
     @Test
     fun `toggle play pause works correctly`() = runTest {
         radioPlaybackManager.playStation(stationA)
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
+        playerListener?.onIsPlayingChanged(true)
 
         // Toggle to pause
         radioPlaybackManager.togglePlayPause()
         verify { echoPlayer.pause() }
 
         // Simulate pause
-        listenerSlot.captured.onIsPlayingChanged(false)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onIsPlayingChanged(false)
 
         // Toggle to play
         radioPlaybackManager.togglePlayPause()
-        verify { echoPlayer.play() }
+        verify(atLeast = 2) { echoPlayer.play() }
     }
 
     // ============================================
@@ -254,45 +230,37 @@ class RadioPlaybackIntegrationTest {
     fun `error during playback updates state correctly`() = runTest {
         // Start playing
         radioPlaybackManager.playStation(stationA)
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
+        playerListener?.onIsPlayingChanged(true)
 
         // Simulate error
         val error = mockk<androidx.media3.common.PlaybackException>(relaxed = true) {
             every { localizedMessage } returns "Stream unavailable"
         }
-        listenerSlot.captured.onPlayerError(error)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlayerError(error)
 
         // Verify error state
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertEquals(RadioSignalStatus.ERROR, state.signalStatus)
-            assertEquals("Stream unavailable", state.error)
-            assertFalse(state.isPlaying)
-            assertTrue(state.isRadioMode) // Still in radio mode
-        }
+        val state = radioPlaybackManager.state.value
+        assertEquals(RadioSignalStatus.ERROR, state.signalStatus)
+        assertEquals("Stream unavailable", state.error)
+        assertFalse(state.isPlaying)
+        assertTrue(state.isRadioMode) // Still in radio mode
     }
 
     @Test
     fun `stream ended unexpectedly sets error state`() = runTest {
         // Start playing
         radioPlaybackManager.playStation(stationA)
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
+        playerListener?.onIsPlayingChanged(true)
 
         // Simulate stream ended
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_ENDED)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_ENDED)
 
         // Verify error state for live stream ended
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertEquals(RadioSignalStatus.ERROR, state.signalStatus)
-            assertNotNull(state.error)
-        }
+        val state = radioPlaybackManager.state.value
+        assertEquals(RadioSignalStatus.ERROR, state.signalStatus)
+        assertNotNull(state.error)
     }
 
     // ============================================
@@ -303,33 +271,26 @@ class RadioPlaybackIntegrationTest {
     fun `buffering during playback shows weak signal`() = runTest {
         // Start playing and become ready
         radioPlaybackManager.playStation(stationA)
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        listenerSlot.captured.onIsPlayingChanged(true)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
+        playerListener?.onIsPlayingChanged(true)
 
         assertEquals(RadioSignalStatus.GOOD, radioPlaybackManager.state.value.signalStatus)
 
         // Start buffering (rebuffering)
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_BUFFERING)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_BUFFERING)
 
         // Verify buffering state
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertTrue(state.isBuffering)
-            assertEquals(RadioSignalStatus.WEAK, state.signalStatus)
-        }
+        var state = radioPlaybackManager.state.value
+        assertTrue(state.isBuffering)
+        assertEquals(RadioSignalStatus.WEAK, state.signalStatus)
 
         // Recovery
-        listenerSlot.captured.onPlaybackStateChanged(Player.STATE_READY)
-        testDispatcher.scheduler.advanceUntilIdle()
+        playerListener?.onPlaybackStateChanged(Player.STATE_READY)
 
         // Verify recovered
-        radioPlaybackManager.state.test {
-            val state = awaitItem()
-            assertFalse(state.isBuffering)
-            assertEquals(RadioSignalStatus.GOOD, state.signalStatus)
-        }
+        state = radioPlaybackManager.state.value
+        assertFalse(state.isBuffering)
+        assertEquals(RadioSignalStatus.GOOD, state.signalStatus)
     }
 
     // ============================================
@@ -345,7 +306,6 @@ class RadioPlaybackIntegrationTest {
         radioPlaybackManager.updateMetadata(
             RadioMetadata("some-uuid", "Song", "Artist", null)
         )
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Metadata should be null (not in radio mode)
         assertNull(radioPlaybackManager.state.value.metadata)
@@ -358,13 +318,11 @@ class RadioPlaybackIntegrationTest {
         radioPlaybackManager.updateMetadata(
             RadioMetadata("station-a-uuid", "Song", "Artist", null)
         )
-        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNotNull(radioPlaybackManager.state.value.metadata)
 
         // Clear metadata
         radioPlaybackManager.clearMetadata()
-        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(radioPlaybackManager.state.value.metadata)
     }
@@ -376,7 +334,6 @@ class RadioPlaybackIntegrationTest {
     @Test
     fun `starting radio clears track queue`() = runTest {
         radioPlaybackManager.playStation(stationA)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         verify { echoPlayer.clearQueue() }
     }
@@ -388,7 +345,6 @@ class RadioPlaybackIntegrationTest {
     @Test
     fun `station uses resolved URL when available`() = runTest {
         radioPlaybackManager.playStation(stationA)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Station A has urlResolved, should use it
         assertEquals("http://stream.a.com/resolved", stationA.streamUrl)
@@ -397,7 +353,6 @@ class RadioPlaybackIntegrationTest {
     @Test
     fun `station uses regular URL when resolved not available`() = runTest {
         radioPlaybackManager.playStation(stationB)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // Station B has no urlResolved, should use regular url
         assertEquals("http://stream.b.com", stationB.streamUrl)
@@ -412,12 +367,10 @@ class RadioPlaybackIntegrationTest {
         assertFalse(radioPlaybackManager.isRadioMode)
 
         radioPlaybackManager.playStation(stationA)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(radioPlaybackManager.isRadioMode)
 
         radioPlaybackManager.stop()
-        testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(radioPlaybackManager.isRadioMode)
     }
@@ -427,12 +380,10 @@ class RadioPlaybackIntegrationTest {
         assertNull(radioPlaybackManager.currentStation)
 
         radioPlaybackManager.playStation(stationA)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(stationA, radioPlaybackManager.currentStation)
 
         radioPlaybackManager.playStation(stationB)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(stationB, radioPlaybackManager.currentStation)
     }
