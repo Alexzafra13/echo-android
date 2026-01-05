@@ -229,7 +229,7 @@ class RadioPlaybackIntegrationTest {
 
         // Toggle to play
         radioPlaybackManager.togglePlayPause()
-        verify(atLeast = 2) { echoPlayer.play() }
+        verify(exactly = 1) { echoPlayer.play() }
     }
 
     // ============================================

@@ -182,8 +182,8 @@ class RadioPlaybackManagerTest {
         // When
         radioPlaybackManager.togglePlayPause()
 
-        // Then - verify play is called at least twice (once in playStation, once in togglePlayPause)
-        verify(atLeast = 2) { echoPlayer.play() }
+        // Then - verify play is called once (from togglePlayPause -> resume)
+        verify(exactly = 1) { echoPlayer.play() }
     }
 
     @Test
