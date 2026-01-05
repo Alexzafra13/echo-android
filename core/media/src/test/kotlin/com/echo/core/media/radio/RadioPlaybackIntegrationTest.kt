@@ -24,6 +24,9 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Integration tests that verify the complete radio playback flow.
@@ -31,6 +34,8 @@ import org.junit.Test
  * and EchoPlayer work together correctly.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE)
 class RadioPlaybackIntegrationTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
