@@ -1,6 +1,6 @@
 package com.echo.core.network.interceptor
 
-import com.echo.core.datastore.preferences.Session
+import com.echo.core.datastore.preferences.SessionData
 import com.echo.core.datastore.preferences.SessionPreferences
 import io.mockk.every
 import io.mockk.mockk
@@ -22,7 +22,18 @@ class AuthInterceptorTest {
     private lateinit var authInterceptor: AuthInterceptor
     private lateinit var client: OkHttpClient
 
-    private val sessionFlow = MutableStateFlow<Session?>(null)
+    private val sessionFlow = MutableStateFlow<SessionData?>(null)
+
+    private fun createTestSession(accessToken: String): SessionData {
+        return SessionData(
+            serverId = "server-1",
+            userId = "user-1",
+            username = "testuser",
+            accessToken = accessToken,
+            refreshToken = "refresh-token",
+            expiresAt = System.currentTimeMillis() + 3600000
+        )
+    }
 
     @Before
     fun setup() {
@@ -48,11 +59,7 @@ class AuthInterceptorTest {
     @Test
     fun `adds Authorization header when token is present`() {
         // Given
-        sessionFlow.value = Session(
-            accessToken = "test-token-123",
-            refreshToken = "refresh-token",
-            expiresAt = System.currentTimeMillis() + 3600000
-        )
+        sessionFlow.value = createTestSession("test-token-123")
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         val request = Request.Builder()
@@ -88,11 +95,7 @@ class AuthInterceptorTest {
     @Test
     fun `skips auth for login endpoint`() {
         // Given
-        sessionFlow.value = Session(
-            accessToken = "test-token",
-            refreshToken = "refresh",
-            expiresAt = System.currentTimeMillis() + 3600000
-        )
+        sessionFlow.value = createTestSession("test-token")
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         val request = Request.Builder()
@@ -110,11 +113,7 @@ class AuthInterceptorTest {
     @Test
     fun `skips auth for health endpoint`() {
         // Given
-        sessionFlow.value = Session(
-            accessToken = "test-token",
-            refreshToken = "refresh",
-            expiresAt = System.currentTimeMillis() + 3600000
-        )
+        sessionFlow.value = createTestSession("test-token")
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         val request = Request.Builder()
@@ -132,11 +131,7 @@ class AuthInterceptorTest {
     @Test
     fun `skips auth for setup endpoints`() {
         // Given
-        sessionFlow.value = Session(
-            accessToken = "test-token",
-            refreshToken = "refresh",
-            expiresAt = System.currentTimeMillis() + 3600000
-        )
+        sessionFlow.value = createTestSession("test-token")
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         val request = Request.Builder()
@@ -154,11 +149,7 @@ class AuthInterceptorTest {
     @Test
     fun `adds auth for regular API endpoints`() {
         // Given
-        sessionFlow.value = Session(
-            accessToken = "my-token",
-            refreshToken = "refresh",
-            expiresAt = System.currentTimeMillis() + 3600000
-        )
+        sessionFlow.value = createTestSession("my-token")
         mockWebServer.enqueue(MockResponse().setResponseCode(200))
 
         val request = Request.Builder()
