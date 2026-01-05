@@ -63,13 +63,20 @@ class WelcomeViewModelTest {
         // Given
         serversFlow.value = listOf(testServer)
         val viewModel = WelcomeViewModel(serverPreferences)
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        // Then
+        // Then - stateIn with WhileSubscribed emits initialValue first,
+        // then collects upstream when subscriber is active
         viewModel.servers.test {
-            val servers = awaitItem()
-            assertEquals(1, servers.size)
-            assertEquals(testServer, servers[0])
+            // May get initial empty list first, then the actual value
+            val first = awaitItem()
+            if (first.isEmpty()) {
+                val servers = awaitItem()
+                assertEquals(1, servers.size)
+                assertEquals(testServer, servers[0])
+            } else {
+                assertEquals(1, first.size)
+                assertEquals(testServer, first[0])
+            }
         }
     }
 
@@ -77,7 +84,6 @@ class WelcomeViewModelTest {
     fun `servers updates when preferences changes`() = runTest {
         // Given
         val viewModel = WelcomeViewModel(serverPreferences)
-        testDispatcher.scheduler.advanceUntilIdle()
 
         // When
         val newServer = SavedServer(
@@ -86,11 +92,17 @@ class WelcomeViewModelTest {
             url = "https://new.example.com",
             addedAt = System.currentTimeMillis()
         )
-        serversFlow.value = listOf(testServer, newServer)
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        // Then
+        // Then - collect and update within the test block
         viewModel.servers.test {
+            // Initial empty list
+            val initial = awaitItem()
+            assertTrue(initial.isEmpty())
+
+            // Update the source flow
+            serversFlow.value = listOf(testServer, newServer)
+
+            // Should receive the updated list
             val servers = awaitItem()
             assertEquals(2, servers.size)
         }
@@ -107,15 +119,22 @@ class WelcomeViewModelTest {
         serversFlow.value = servers
 
         val viewModel = WelcomeViewModel(serverPreferences)
-        testDispatcher.scheduler.advanceUntilIdle()
 
-        // Then
+        // Then - stateIn with WhileSubscribed emits initialValue first
         viewModel.servers.test {
-            val result = awaitItem()
-            assertEquals(3, result.size)
-            assertEquals("Server 1", result[0].name)
-            assertEquals("Server 2", result[1].name)
-            assertEquals("Server 3", result[2].name)
+            val first = awaitItem()
+            if (first.isEmpty()) {
+                val result = awaitItem()
+                assertEquals(3, result.size)
+                assertEquals("Server 1", result[0].name)
+                assertEquals("Server 2", result[1].name)
+                assertEquals("Server 3", result[2].name)
+            } else {
+                assertEquals(3, first.size)
+                assertEquals("Server 1", first[0].name)
+                assertEquals("Server 2", first[1].name)
+                assertEquals("Server 3", first[2].name)
+            }
         }
     }
 }
