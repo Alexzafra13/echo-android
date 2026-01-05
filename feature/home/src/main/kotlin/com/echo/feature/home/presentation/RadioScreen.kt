@@ -35,6 +35,10 @@ import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.SignalCellular4Bar
+import androidx.compose.material.icons.filled.SignalCellularConnectedNoInternet0Bar
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -62,6 +66,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.echo.core.media.model.RadioSignalStatus
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
@@ -74,101 +79,268 @@ fun RadioScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(top = 72.dp)
     ) {
-        // Header
-        Text(
-            text = "Radio",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(16.dp)
-        )
-
-        // Tabs
-        TabRow(
-            selectedTabIndex = state.selectedTab.ordinal,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = EchoCoral,
-            indicator = { tabPositions ->
-                TabRowDefaults.Indicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[state.selectedTab.ordinal]),
-                    color = EchoCoral
-                )
-            }
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 72.dp)
+                .padding(bottom = if (state.currentPlayingStation != null) 80.dp else 0.dp)
         ) {
-            RadioTab.entries.forEach { tab ->
-                Tab(
-                    selected = state.selectedTab == tab,
-                    onClick = { viewModel.selectTab(tab) },
-                    text = {
-                        Text(
-                            text = when (tab) {
-                                RadioTab.FAVORITES -> "Favoritos"
-                                RadioTab.DISCOVER -> "Descubrir"
-                                RadioTab.BROWSE -> "Explorar"
-                            },
-                            fontWeight = if (state.selectedTab == tab) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    selectedContentColor = EchoCoral,
-                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // Header
+            Text(
+                text = "Radio",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(16.dp)
+            )
+
+            // Tabs
+            TabRow(
+                selectedTabIndex = state.selectedTab.ordinal,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = EchoCoral,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[state.selectedTab.ordinal]),
+                        color = EchoCoral
+                    )
+                }
+            ) {
+                RadioTab.entries.forEach { tab ->
+                    Tab(
+                        selected = state.selectedTab == tab,
+                        onClick = { viewModel.selectTab(tab) },
+                        text = {
+                            Text(
+                                text = when (tab) {
+                                    RadioTab.FAVORITES -> "Favoritos"
+                                    RadioTab.DISCOVER -> "Descubrir"
+                                    RadioTab.BROWSE -> "Explorar"
+                                },
+                                fontWeight = if (state.selectedTab == tab) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        selectedContentColor = EchoCoral,
+                        unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            if (state.isLoading && state.favorites.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = EchoCoral)
+                }
+            } else {
+                when (state.selectedTab) {
+                    RadioTab.FAVORITES -> FavoritesTab(
+                        favorites = state.favorites,
+                        currentPlayingUuid = state.currentPlayingStation?.stationUuid,
+                        isPlaying = state.isRadioPlaying,
+                        onPlay = { viewModel.playStation(it) },
+                        onDelete = { viewModel.deleteFavorite(it) }
+                    )
+                    RadioTab.DISCOVER -> DiscoverTab(
+                        searchQuery = state.searchQuery,
+                        searchResults = state.searchResults,
+                        topVoted = state.topVoted,
+                        popular = state.popular,
+                        isSearching = state.isSearching,
+                        favoriteIds = state.favoriteIds,
+                        currentPlayingUuid = state.currentPlayingStation?.stationUuid,
+                        isPlaying = state.isRadioPlaying,
+                        onSearchQueryChange = viewModel::onSearchQueryChange,
+                        onPlay = { viewModel.playStation(it) },
+                        onToggleFavorite = viewModel::toggleFavorite
+                    )
+                    RadioTab.BROWSE -> BrowseTab(
+                        genres = state.genres,
+                        countries = state.countries,
+                        selectedGenre = state.selectedGenre,
+                        selectedCountry = state.selectedCountry,
+                        genreStations = state.genreStations,
+                        countryStations = state.countryStations,
+                        favoriteIds = state.favoriteIds,
+                        isLoading = state.isLoading,
+                        currentPlayingUuid = state.currentPlayingStation?.stationUuid,
+                        isPlaying = state.isRadioPlaying,
+                        onSelectGenre = viewModel::selectGenre,
+                        onSelectCountry = viewModel::selectCountry,
+                        onClearSelection = viewModel::clearBrowseSelection,
+                        onPlay = { viewModel.playStation(it) },
+                        onToggleFavorite = viewModel::toggleFavorite
+                    )
+                }
             }
         }
 
-        if (state.isLoading && state.favorites.isEmpty()) {
+        // Mini Player Bar
+        state.currentPlayingStation?.let { station ->
+            RadioMiniPlayer(
+                stationName = station.name,
+                metadata = state.currentMetadata?.displayText,
+                favicon = station.favicon,
+                isPlaying = state.isRadioPlaying,
+                isBuffering = state.isRadioBuffering,
+                signalStatus = state.signalStatus,
+                onPlayPause = viewModel::togglePlayPause,
+                onStop = viewModel::stopRadio,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+/**
+ * Mini player bar shown at the bottom when radio is playing
+ */
+@Composable
+private fun RadioMiniPlayer(
+    stationName: String,
+    metadata: String?,
+    favicon: String?,
+    isPlaying: Boolean,
+    isBuffering: Boolean,
+    signalStatus: RadioSignalStatus,
+    onPlayPause: () -> Unit,
+    onStop: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Station icon
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(EchoCoral.copy(alpha = 0.1f)),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(color = EchoCoral)
+                if (favicon != null) {
+                    AsyncImage(
+                        model = favicon,
+                        contentDescription = stationName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Radio,
+                        contentDescription = null,
+                        tint = EchoCoral,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
-        } else {
-            when (state.selectedTab) {
-                RadioTab.FAVORITES -> FavoritesTab(
-                    favorites = state.favorites,
-                    onPlay = { viewModel.playStation(it) },
-                    onDelete = { viewModel.deleteFavorite(it) }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Station info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stationName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                RadioTab.DISCOVER -> DiscoverTab(
-                    searchQuery = state.searchQuery,
-                    searchResults = state.searchResults,
-                    topVoted = state.topVoted,
-                    popular = state.popular,
-                    isSearching = state.isSearching,
-                    favoriteIds = state.favoriteIds,
-                    onSearchQueryChange = viewModel::onSearchQueryChange,
-                    onPlay = { viewModel.playStation(it) },
-                    onToggleFavorite = viewModel::toggleFavorite
-                )
-                RadioTab.BROWSE -> BrowseTab(
-                    genres = state.genres,
-                    countries = state.countries,
-                    selectedGenre = state.selectedGenre,
-                    selectedCountry = state.selectedCountry,
-                    genreStations = state.genreStations,
-                    countryStations = state.countryStations,
-                    favoriteIds = state.favoriteIds,
-                    isLoading = state.isLoading,
-                    onSelectGenre = viewModel::selectGenre,
-                    onSelectCountry = viewModel::selectCountry,
-                    onClearSelection = viewModel::clearBrowseSelection,
-                    onPlay = { viewModel.playStation(it) },
-                    onToggleFavorite = viewModel::toggleFavorite
+                if (!metadata.isNullOrBlank()) {
+                    Text(
+                        text = metadata,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = EchoCoral,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Signal status indicator
+            SignalIndicator(
+                status = signalStatus,
+                isBuffering = isBuffering
+            )
+
+            Spacer(modifier = Modifier.width(4.dp))
+
+            // Play/Pause button
+            IconButton(onClick = onPlayPause) {
+                if (isBuffering) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = EchoCoral
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                        tint = EchoCoral
+                    )
+                }
+            }
+
+            // Stop button
+            IconButton(onClick = onStop) {
+                Icon(
+                    imageVector = Icons.Default.Stop,
+                    contentDescription = "Detener",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
     }
 }
 
+/**
+ * Signal quality indicator
+ */
+@Composable
+private fun SignalIndicator(
+    status: RadioSignalStatus,
+    isBuffering: Boolean
+) {
+    val (icon, color) = when {
+        isBuffering -> Icons.Default.SignalCellular4Bar to Color.Yellow
+        status == RadioSignalStatus.GOOD -> Icons.Default.SignalCellular4Bar to Color.Green
+        status == RadioSignalStatus.WEAK -> Icons.Default.SignalCellular4Bar to Color.Yellow
+        status == RadioSignalStatus.ERROR -> Icons.Default.SignalCellularConnectedNoInternet0Bar to Color.Red
+        else -> Icons.Default.SignalCellular4Bar to MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Icon(
+        imageVector = icon,
+        contentDescription = "Estado de señal",
+        tint = color,
+        modifier = Modifier.size(20.dp)
+    )
+}
+
 @Composable
 private fun FavoritesTab(
     favorites: List<RadioStation>,
+    currentPlayingUuid: String?,
+    isPlaying: Boolean,
     onPlay: (RadioStation) -> Unit,
     onDelete: (RadioStation) -> Unit
 ) {
@@ -206,8 +378,10 @@ private fun FavoritesTab(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(favorites) { station ->
+                val isCurrentlyPlaying = isPlaying && station.stationUuid == currentPlayingUuid
                 FavoriteStationCard(
                     station = station,
+                    isCurrentlyPlaying = isCurrentlyPlaying,
                     onPlay = { onPlay(station) },
                     onDelete = { onDelete(station) }
                 )
@@ -219,6 +393,7 @@ private fun FavoritesTab(
 @Composable
 private fun FavoriteStationCard(
     station: RadioStation,
+    isCurrentlyPlaying: Boolean = false,
     onPlay: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -227,7 +402,10 @@ private fun FavoriteStationCard(
             .fillMaxWidth()
             .clickable(onClick = onPlay),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (isCurrentlyPlaying)
+                EchoCoral.copy(alpha = 0.1f)
+            else
+                MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -236,7 +414,7 @@ private fun FavoriteStationCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Station icon/favicon
+            // Station icon/favicon with playing indicator
             Box(
                 modifier = Modifier
                     .size(56.dp)
@@ -259,18 +437,48 @@ private fun FavoriteStationCard(
                         modifier = Modifier.size(28.dp)
                     )
                 }
+                // Playing overlay
+                if (isCurrentlyPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Radio,
+                            contentDescription = "Reproduciendo",
+                            tint = EchoCoral,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = station.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = station.name,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isCurrentlyPlaying) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "EN VIVO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            modifier = Modifier
+                                .background(EchoCoral, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 station.country?.let { country ->
                     Text(
                         text = country,
@@ -291,8 +499,8 @@ private fun FavoriteStationCard(
 
             IconButton(onClick = onPlay) {
                 Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Reproducir",
+                    imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isCurrentlyPlaying) "Pausar" else "Reproducir",
                     tint = EchoCoral
                 )
             }
@@ -316,6 +524,8 @@ private fun DiscoverTab(
     popular: List<RadioBrowserStation>,
     isSearching: Boolean,
     favoriteIds: Set<String>,
+    currentPlayingUuid: String?,
+    isPlaying: Boolean,
     onSearchQueryChange: (String) -> Unit,
     onPlay: (RadioBrowserStation) -> Unit,
     onToggleFavorite: (RadioBrowserStation) -> Unit
@@ -363,9 +573,11 @@ private fun DiscoverTab(
                 )
             }
             items(searchResults.take(10)) { station ->
+                val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
                 RadioBrowserStationCard(
                     station = station,
                     isFavorite = station.stationuuid in favoriteIds,
+                    isCurrentlyPlaying = isCurrentlyPlaying,
                     onPlay = { onPlay(station) },
                     onToggleFavorite = { onToggleFavorite(station) }
                 )
@@ -396,9 +608,11 @@ private fun DiscoverTab(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(topVoted) { station ->
+                            val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
                             CompactRadioCard(
                                 station = station,
                                 isFavorite = station.stationuuid in favoriteIds,
+                                isCurrentlyPlaying = isCurrentlyPlaying,
                                 onPlay = { onPlay(station) },
                                 onToggleFavorite = { onToggleFavorite(station) }
                             )
@@ -432,9 +646,11 @@ private fun DiscoverTab(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(popular) { station ->
+                            val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
                             CompactRadioCard(
                                 station = station,
                                 isFavorite = station.stationuuid in favoriteIds,
+                                isCurrentlyPlaying = isCurrentlyPlaying,
                                 onPlay = { onPlay(station) },
                                 onToggleFavorite = { onToggleFavorite(station) }
                             )
@@ -450,6 +666,7 @@ private fun DiscoverTab(
 private fun CompactRadioCard(
     station: RadioBrowserStation,
     isFavorite: Boolean,
+    isCurrentlyPlaying: Boolean = false,
     onPlay: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
@@ -458,7 +675,10 @@ private fun CompactRadioCard(
             .width(160.dp)
             .clickable(onClick = onPlay),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (isCurrentlyPlaying)
+                EchoCoral.copy(alpha = 0.15f)
+            else
+                MaterialTheme.colorScheme.surface
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
@@ -487,24 +707,55 @@ private fun CompactRadioCard(
                         modifier = Modifier.size(28.dp)
                     )
                 }
+                // Playing indicator overlay
+                if (isCurrentlyPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Radio,
+                            contentDescription = "Reproduciendo",
+                            tint = EchoCoral,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text(
-                text = station.name,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = station.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = if (isCurrentlyPlaying) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+            }
 
-            Text(
-                text = station.country.ifEmpty { "Internacional" },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
+            if (isCurrentlyPlaying) {
+                Text(
+                    text = "EN VIVO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .background(EchoCoral, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            } else {
+                Text(
+                    text = station.country.ifEmpty { "Internacional" },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -518,8 +769,8 @@ private fun CompactRadioCard(
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Reproducir",
+                        imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isCurrentlyPlaying) "Pausar" else "Reproducir",
                         tint = EchoCoral
                     )
                 }
@@ -542,6 +793,7 @@ private fun CompactRadioCard(
 private fun RadioBrowserStationCard(
     station: RadioBrowserStation,
     isFavorite: Boolean,
+    isCurrentlyPlaying: Boolean = false,
     onPlay: () -> Unit,
     onToggleFavorite: () -> Unit
 ) {
@@ -550,7 +802,10 @@ private fun RadioBrowserStationCard(
             .fillMaxWidth()
             .clickable(onClick = onPlay),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (isCurrentlyPlaying)
+                EchoCoral.copy(alpha = 0.1f)
+            else
+                MaterialTheme.colorScheme.surface
         )
     ) {
         Row(
@@ -580,18 +835,48 @@ private fun RadioBrowserStationCard(
                         tint = EchoCoral
                     )
                 }
+                // Playing indicator overlay
+                if (isCurrentlyPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Radio,
+                            contentDescription = "Reproduciendo",
+                            tint = EchoCoral,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = station.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = station.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isCurrentlyPlaying) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "EN VIVO",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            modifier = Modifier
+                                .background(EchoCoral, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
                 Text(
                     text = station.country.ifEmpty { "Internacional" },
                     style = MaterialTheme.typography.bodySmall,
@@ -608,8 +893,8 @@ private fun RadioBrowserStationCard(
 
             IconButton(onClick = onPlay) {
                 Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Reproducir",
+                    imageVector = if (isCurrentlyPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isCurrentlyPlaying) "Pausar" else "Reproducir",
                     tint = EchoCoral
                 )
             }
@@ -635,6 +920,8 @@ private fun BrowseTab(
     countryStations: List<RadioBrowserStation>,
     favoriteIds: Set<String>,
     isLoading: Boolean,
+    currentPlayingUuid: String?,
+    isPlaying: Boolean,
     onSelectGenre: (String) -> Unit,
     onSelectCountry: (String) -> Unit,
     onClearSelection: () -> Unit,
@@ -681,9 +968,11 @@ private fun BrowseTab(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(stations) { station ->
+                        val isCurrentlyPlaying = isPlaying && station.stationuuid == currentPlayingUuid
                         RadioBrowserStationCard(
                             station = station,
                             isFavorite = station.stationuuid in favoriteIds,
+                            isCurrentlyPlaying = isCurrentlyPlaying,
                             onPlay = { onPlay(station) },
                             onToggleFavorite = { onToggleFavorite(station) }
                         )
