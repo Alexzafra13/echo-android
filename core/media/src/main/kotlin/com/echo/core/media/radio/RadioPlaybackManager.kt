@@ -1,9 +1,6 @@
 package com.echo.core.media.radio
 
-import android.net.Uri
 import androidx.annotation.OptIn
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import com.echo.core.media.model.PlayableRadioStation
@@ -42,7 +39,8 @@ data class RadioPlaybackState(
 @OptIn(UnstableApi::class)
 class RadioPlaybackManager @Inject constructor(
     private val echoPlayer: EchoPlayer,
-    private val metadataService: RadioMetadataService
+    private val metadataService: RadioMetadataService,
+    private val mediaItemFactory: MediaItemFactory
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -138,8 +136,8 @@ class RadioPlaybackManager @Inject constructor(
         // Clear any current track queue
         echoPlayer.clearQueue()
 
-        // Create media item for the radio station
-        val mediaItem = station.toMediaItem()
+        // Create media item for the radio station using factory
+        val mediaItem = mediaItemFactory.createFromStation(station)
 
         // Update state first
         _state.update {
@@ -252,21 +250,7 @@ class RadioPlaybackManager @Inject constructor(
      * Update MediaSession with current metadata for notifications
      */
     private fun updateMediaSessionMetadata(station: PlayableRadioStation, metadata: RadioMetadata?) {
-        val metadataBuilder = MediaMetadata.Builder()
-            .setStation(station.name)
-            .setArtworkUri(station.favicon?.let { Uri.parse(it) })
-
-        if (metadata?.hasMetadata == true) {
-            metadataBuilder
-                .setTitle(metadata.title ?: metadata.song ?: station.name)
-                .setArtist(metadata.artist ?: station.country ?: "Radio")
-        } else {
-            metadataBuilder
-                .setTitle(station.name)
-                .setArtist(station.country ?: "Radio")
-        }
-
-        val newMetadata = metadataBuilder.build()
+        val newMetadata = mediaItemFactory.createMetadata(station, metadata)
 
         // Update the current media item's metadata
         echoPlayer.exoPlayer.currentMediaItem?.let { currentItem ->
