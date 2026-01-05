@@ -6,6 +6,7 @@ import com.echo.core.media.model.RadioMetadata
 import com.echo.core.media.model.RadioSignalStatus
 import com.echo.core.media.radio.RadioPlaybackManager
 import com.echo.core.media.radio.RadioPlaybackState
+import com.echo.feature.home.data.model.RadioBrowserCountry
 import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
 import com.echo.feature.home.data.model.RadioStation
@@ -95,12 +96,15 @@ class RadioViewModelTest {
             every { state } returns playbackStateFlow
         }
 
-        // Default repository responses
-        coEvery { radioRepository.getFavorites() } returns Result.success(emptyList())
-        coEvery { radioRepository.getTopVoted(any()) } returns Result.success(emptyList())
-        coEvery { radioRepository.getPopular(any()) } returns Result.success(emptyList())
-        coEvery { radioRepository.getTags(any()) } returns Result.success(emptyList())
-        coEvery { radioRepository.getCountries() } returns Result.success(emptyList())
+        // Default repository responses with explicit types to avoid ClassCastException
+        coEvery { radioRepository.getFavorites() } returns Result.success(emptyList<RadioStation>())
+        coEvery { radioRepository.getTopVoted(any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        coEvery { radioRepository.getPopular(any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        coEvery { radioRepository.getTags(any()) } returns Result.success(emptyList<RadioBrowserTag>())
+        coEvery { radioRepository.getCountries() } returns Result.success(emptyList<RadioBrowserCountry>())
+        coEvery { radioRepository.searchStations(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        coEvery { radioRepository.getByTag(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        coEvery { radioRepository.getByCountry(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
     }
 
     @After
