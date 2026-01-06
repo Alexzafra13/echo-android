@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkBackground
+import com.echo.core.ui.util.rememberEchoHaptics
 
 sealed class BottomNavItem(
     val route: String,
@@ -137,6 +138,7 @@ private fun NavBarItem(
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptics = rememberEchoHaptics()
 
     val iconColor by animateColorAsState(
         targetValue = if (isSelected) EchoCoral else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -153,7 +155,12 @@ private fun NavBarItem(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = {
+                    if (!isSelected) {
+                        haptics.lightTap()
+                    }
+                    onClick()
+                }
             )
             .padding(horizontal = 16.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally

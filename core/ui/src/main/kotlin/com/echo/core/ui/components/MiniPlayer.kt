@@ -8,7 +8,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +40,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,7 +48,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoGlass
+import com.echo.core.ui.util.rememberEchoHaptics
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 data class MiniPlayerState(
@@ -74,9 +75,11 @@ fun MiniPlayer(
 ) {
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
-    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val offsetY = remember { Animatable(0f) }
+    val haptics = rememberEchoHaptics()
     val density = LocalDensity.current
     val swipeThreshold = 100f
+    val swipeUpThreshold = -80f // Negative because up is negative Y
     val textAreaWidth = with(density) { 250.dp.toPx() }
     val nextTrackStartOffset = with(density) { 300.dp.toPx() }
 
@@ -103,15 +106,24 @@ fun MiniPlayer(
                 .clip(RoundedCornerShape(12.dp))
                 .background(gradientBackground)
         ) {
-            // Player content with swipe gesture
+            // Player content with swipe gestures (horizontal for next, vertical for expand)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .offset { IntOffset(0, offsetY.value.roundToInt()) }
                     .pointerInput(Unit) {
-                        detectHorizontalDragGestures(
+                        detectDragGestures(
                             onDragEnd = {
                                 scope.launch {
-                                    if (offsetX.value < -swipeThreshold) {
+                                    // Check if swipe up (to expand player)
+                                    if (offsetY.value < swipeUpThreshold) {
+                                        haptics.mediumTap()
+                                        offsetY.snapTo(0f)
+                                        onPlayerClick()
+                                    }
+                                    // Check if swipe left (next track)
+                                    else if (offsetX.value < -swipeThreshold) {
+                                        haptics.doubleTap()
                                         offsetX.animateTo(
                                             targetValue = -nextTrackStartOffset,
                                             animationSpec = spring(
@@ -122,6 +134,7 @@ fun MiniPlayer(
                                         onNextClick()
                                         offsetX.snapTo(0f)
                                     } else {
+                                        // Reset positions
                                         offsetX.animateTo(
                                             targetValue = 0f,
                                             animationSpec = spring(
@@ -130,11 +143,7 @@ fun MiniPlayer(
                                             )
                                         )
                                     }
-                                }
-                            },
-                            onDragCancel = {
-                                scope.launch {
-                                    offsetX.animateTo(
+                                    offsetY.animateTo(
                                         targetValue = 0f,
                                         animationSpec = spring(
                                             dampingRatio = Spring.DampingRatioMediumBouncy,
@@ -143,10 +152,25 @@ fun MiniPlayer(
                                     )
                                 }
                             },
-                            onHorizontalDrag = { _, dragAmount ->
+                            onDragCancel = {
                                 scope.launch {
-                                    val newOffset = (offsetX.value + dragAmount).coerceIn(-textAreaWidth, 0f)
-                                    offsetX.snapTo(newOffset)
+                                    offsetX.animateTo(0f)
+                                    offsetY.animateTo(0f)
+                                }
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                scope.launch {
+                                    // Determine primary drag direction
+                                    if (abs(dragAmount.x) > abs(dragAmount.y)) {
+                                        // Horizontal drag (next track)
+                                        val newOffsetX = (offsetX.value + dragAmount.x).coerceIn(-textAreaWidth, 0f)
+                                        offsetX.snapTo(newOffsetX)
+                                    } else {
+                                        // Vertical drag (expand player) - only allow upward
+                                        val newOffsetY = (offsetY.value + dragAmount.y).coerceIn(-150f, 0f)
+                                        offsetY.snapTo(newOffsetY)
+                                    }
                                 }
                             }
                         )
@@ -240,7 +264,10 @@ fun MiniPlayer(
                             .size(44.dp)
                             .background(EchoCoral, CircleShape)
                             .clip(CircleShape)
-                            .clickable(onClick = onPlayPauseClick),
+                            .clickable {
+                                haptics.lightTap()
+                                onPlayPauseClick()
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
