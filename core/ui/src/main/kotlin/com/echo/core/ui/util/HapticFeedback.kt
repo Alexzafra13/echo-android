@@ -1,5 +1,6 @@
 package com.echo.core.ui.util
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
@@ -9,8 +10,6 @@ import android.view.HapticFeedbackConstants
 import android.view.View
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.hapticfeedback.HapticFeedback
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 
@@ -45,6 +44,7 @@ object HapticUtils {
     /**
      * Heavy haptic for significant actions (song change, error)
      */
+    @SuppressLint("MissingPermission")
     fun heavyTap(context: Context) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
@@ -67,6 +67,7 @@ object HapticUtils {
     /**
      * Double tap pattern for skip actions
      */
+    @SuppressLint("MissingPermission")
     fun doubleTap(context: Context) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
