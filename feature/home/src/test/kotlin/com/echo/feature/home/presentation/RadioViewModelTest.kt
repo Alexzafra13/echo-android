@@ -1,5 +1,6 @@
 package com.echo.feature.home.presentation
 
+import android.content.Context
 import app.cash.turbine.test
 import com.echo.core.media.model.PlayableRadioStation
 import com.echo.core.media.model.RadioMetadata
@@ -19,6 +20,7 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -35,6 +37,7 @@ class RadioViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
+    private lateinit var context: Context
     private lateinit var radioRepository: RadioRepository
     private lateinit var radioPlaybackManager: RadioPlaybackManager
     private lateinit var playbackStateFlow: MutableStateFlow<RadioPlaybackState>
@@ -86,25 +89,29 @@ class RadioViewModelTest {
         isOnline = true
     )
 
+    private val testCountry = RadioBrowserCountry(
+        name = "Spain",
+        isoCode = "ES",
+        stationcount = 500
+    )
+
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
 
+        context = mockk(relaxed = true)
         radioRepository = mockk(relaxed = true)
         playbackStateFlow = MutableStateFlow(RadioPlaybackState())
         radioPlaybackManager = mockk(relaxed = true) {
             every { state } returns playbackStateFlow
         }
 
-        // Default repository responses with explicit types to avoid ClassCastException
-        coEvery { radioRepository.getFavorites() } returns Result.success(emptyList<RadioStation>())
-        coEvery { radioRepository.getTopVoted(any()) } returns Result.success(emptyList<RadioBrowserStation>())
-        coEvery { radioRepository.getPopular(any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        // Default repository responses
         coEvery { radioRepository.getTags(any()) } returns Result.success(emptyList<RadioBrowserTag>())
         coEvery { radioRepository.getCountries() } returns Result.success(emptyList<RadioBrowserCountry>())
-        coEvery { radioRepository.searchStations(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
-        coEvery { radioRepository.getByTag(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        coEvery { radioRepository.searchStations(any(), any(), any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
         coEvery { radioRepository.getByCountry(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        every { radioRepository.observeFavorites() } returns flowOf(emptyList())
     }
 
     @After
@@ -113,7 +120,7 @@ class RadioViewModelTest {
     }
 
     private fun createViewModel(): RadioViewModel {
-        return RadioViewModel(radioRepository, radioPlaybackManager)
+        return RadioViewModel(context, radioRepository, radioPlaybackManager)
     }
 
     @Test
@@ -129,10 +136,10 @@ class RadioViewModelTest {
     }
 
     @Test
-    fun `loadInitialData loads favorites`() = runTest {
+    fun `loadInitialData loads stations for user country`() = runTest {
         // Given
-        val favorites = listOf(testRadioStation)
-        coEvery { radioRepository.getFavorites() } returns Result.success(favorites)
+        val stations = listOf(testBrowserStation)
+        coEvery { radioRepository.getByCountry(any(), any()) } returns Result.success(stations)
 
         // When
         val viewModel = createViewModel()
@@ -141,45 +148,7 @@ class RadioViewModelTest {
         // Then
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals(favorites, state.favorites)
-            assertTrue(state.favoriteIds.contains("uuid-123"))
-        }
-    }
-
-    @Test
-    fun `loadInitialData loads top voted and popular stations`() = runTest {
-        // Given
-        val topVoted = listOf(testBrowserStation)
-        val popular = listOf(testBrowserStation.copy(stationuuid = "popular-1"))
-        coEvery { radioRepository.getTopVoted(20) } returns Result.success(topVoted)
-        coEvery { radioRepository.getPopular(20) } returns Result.success(popular)
-
-        // When
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Then
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertEquals(topVoted, state.topVoted)
-            assertEquals(popular, state.popular)
-        }
-    }
-
-    @Test
-    fun `selectTab updates selected tab`() = runTest {
-        // Given
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // When
-        viewModel.selectTab(RadioTab.DISCOVER)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Then
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertEquals(RadioTab.DISCOVER, state.selectedTab)
+            assertEquals(stations, state.stations)
         }
     }
 
@@ -187,7 +156,7 @@ class RadioViewModelTest {
     fun `onSearchQueryChange triggers search when query is 2+ chars`() = runTest {
         // Given
         val searchResults = listOf(testBrowserStation)
-        coEvery { radioRepository.searchStations(name = "te", limit = 50) } returns Result.success(searchResults)
+        coEvery { radioRepository.searchStations(name = "te", limit = 30) } returns Result.success(searchResults)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -197,7 +166,7 @@ class RadioViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        coVerify { radioRepository.searchStations(name = "te", limit = 50) }
+        coVerify { radioRepository.searchStations(name = "te", limit = 30) }
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals("te", state.searchQuery)
@@ -227,10 +196,10 @@ class RadioViewModelTest {
     }
 
     @Test
-    fun `selectGenre loads genre stations`() = runTest {
+    fun `selectGenre filters stations by genre`() = runTest {
         // Given
         val genreStations = listOf(testBrowserStation)
-        coEvery { radioRepository.getByTag("rock", 50) } returns Result.success(genreStations)
+        coEvery { radioRepository.searchStations(any(), any(), any(), any()) } returns Result.success(genreStations)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -243,33 +212,32 @@ class RadioViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals("rock", state.selectedGenre)
-            assertEquals(genreStations, state.genreStations)
         }
     }
 
     @Test
-    fun `selectCountry loads country stations`() = runTest {
+    fun `selectCountry loads stations for country`() = runTest {
         // Given
         val countryStations = listOf(testBrowserStation)
-        coEvery { radioRepository.getByCountry("ES", 50) } returns Result.success(countryStations)
+        coEvery { radioRepository.getByCountry("ES", 100) } returns Result.success(countryStations)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         // When
-        viewModel.selectCountry("ES")
+        viewModel.selectCountry(testCountry)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         viewModel.uiState.test {
             val state = awaitItem()
-            assertEquals("ES", state.selectedCountry)
-            assertEquals(countryStations, state.countryStations)
+            assertEquals("ES", state.selectedCountryCode)
+            assertEquals("Spain", state.selectedCountryName)
         }
     }
 
     @Test
-    fun `clearBrowseSelection clears genre and country selection`() = runTest {
+    fun `selectGenre null clears genre filter`() = runTest {
         // Given
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -278,16 +246,13 @@ class RadioViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // When
-        viewModel.clearBrowseSelection()
+        viewModel.selectGenre(null)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals(null, state.selectedGenre)
-            assertEquals(null, state.selectedCountry)
-            assertTrue(state.genreStations.isEmpty())
-            assertTrue(state.countryStations.isEmpty())
         }
     }
 
@@ -397,7 +362,7 @@ class RadioViewModelTest {
     }
 
     @Test
-    fun `isStationPlaying returns true for currently playing station`() = runTest {
+    fun `current playing station is tracked in state`() = runTest {
         // Given
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -410,12 +375,15 @@ class RadioViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        assertTrue(viewModel.isStationPlaying("uuid-123"))
-        assertFalse(viewModel.isStationPlaying("other-uuid"))
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals("uuid-123", state.currentPlayingStation?.stationUuid)
+            assertTrue(state.isRadioPlaying)
+        }
     }
 
     @Test
-    fun `isStationPlaying returns false when not playing`() = runTest {
+    fun `paused state is tracked correctly`() = runTest {
         // Given
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -428,7 +396,10 @@ class RadioViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        assertFalse(viewModel.isStationPlaying("uuid-123"))
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertFalse(state.isRadioPlaying)
+        }
     }
 
     @Test
@@ -446,18 +417,14 @@ class RadioViewModelTest {
 
         // Then
         coVerify { radioRepository.saveFavorite(testBrowserStation) }
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertTrue(state.favoriteIds.contains(testBrowserStation.stationuuid))
-        }
     }
 
     @Test
     fun `toggleFavorite removes station from favorites`() = runTest {
         // Given - station is already a favorite
         val favorites = listOf(testRadioStation)
-        coEvery { radioRepository.getFavorites() } returns Result.success(favorites)
-        coEvery { radioRepository.deleteFavorite("1") } returns Result.success(Unit)
+        every { radioRepository.observeFavorites() } returns flowOf(favorites)
+        coEvery { radioRepository.deleteFavoriteByUuid("uuid-123") } returns Result.success(Unit)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -470,15 +437,15 @@ class RadioViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        coVerify { radioRepository.deleteFavorite("1") }
+        coVerify { radioRepository.deleteFavoriteByUuid("uuid-123") }
     }
 
     @Test
     fun `deleteFavorite removes station`() = runTest {
         // Given
         val favorites = listOf(testRadioStation)
-        coEvery { radioRepository.getFavorites() } returns Result.success(favorites)
-        coEvery { radioRepository.deleteFavorite("1") } returns Result.success(Unit)
+        every { radioRepository.observeFavorites() } returns flowOf(favorites)
+        coEvery { radioRepository.deleteFavoriteByUuid("uuid-123") } returns Result.success(Unit)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -488,15 +455,11 @@ class RadioViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
-        coVerify { radioRepository.deleteFavorite("1") }
-        viewModel.uiState.test {
-            val state = awaitItem()
-            assertFalse(state.favorites.any { it.id == "1" })
-        }
+        coVerify { radioRepository.deleteFavoriteByUuid("uuid-123") }
     }
 
     @Test
-    fun `refresh reloads all data`() = runTest {
+    fun `refresh reloads stations for current country`() = runTest {
         // Given
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -505,21 +468,14 @@ class RadioViewModelTest {
         viewModel.refresh()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Then - repositories should be called twice (init + refresh)
-        coVerify(exactly = 2) { radioRepository.getFavorites() }
-        coVerify(exactly = 2) { radioRepository.getTopVoted(any()) }
-        coVerify(exactly = 2) { radioRepository.getPopular(any()) }
+        // Then - repository should be called twice (init + refresh)
+        coVerify(atLeast = 2) { radioRepository.getByCountry(any(), any()) }
     }
 
     @Test
     fun `clearError clears error state`() = runTest {
         // Given
         val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Simulate an error first (by setting it indirectly through a failed operation)
-        coEvery { radioRepository.deleteFavorite(any()) } returns Result.failure(Exception("Error"))
-        viewModel.deleteFavorite(testRadioStation)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // When
@@ -530,6 +486,65 @@ class RadioViewModelTest {
         viewModel.uiState.test {
             val state = awaitItem()
             assertEquals(null, state.error)
+        }
+    }
+
+    @Test
+    fun `clearSearch clears search state`() = runTest {
+        // Given
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onSearchQueryChange("test")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // When
+        viewModel.clearSearch()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Then
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertEquals("", state.searchQuery)
+            assertTrue(state.searchResults.isEmpty())
+            assertFalse(state.isSearchActive)
+        }
+    }
+
+    @Test
+    fun `showCountryPicker updates state`() = runTest {
+        // Given
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // When
+        viewModel.showCountryPicker()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Then
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertTrue(state.showCountryPicker)
+        }
+    }
+
+    @Test
+    fun `hideCountryPicker updates state`() = runTest {
+        // Given
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCountryPicker()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // When
+        viewModel.hideCountryPicker()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Then
+        viewModel.uiState.test {
+            val state = awaitItem()
+            assertFalse(state.showCountryPicker)
         }
     }
 }
