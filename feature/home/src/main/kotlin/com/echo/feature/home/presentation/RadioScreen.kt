@@ -111,7 +111,7 @@ fun RadioScreen(
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                top = 80.dp, // Space for top bar
+                top = 120.dp, // Space for top bar
                 bottom = 100.dp // Space for mini player
             ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
