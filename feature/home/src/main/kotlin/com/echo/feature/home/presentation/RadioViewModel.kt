@@ -1,6 +1,7 @@
 package com.echo.feature.home.presentation
 
 import android.content.Context
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.echo.core.media.model.PlayableRadioStation
@@ -15,6 +16,8 @@ import com.echo.feature.home.data.model.RadioStation
 import com.echo.feature.home.data.repository.RadioRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,36 +26,64 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 import javax.inject.Inject
 
+// Section types for navigation
+enum class RadioSectionType {
+    FAVORITES,
+    LOCAL,
+    INTERNATIONAL,
+    GENRE
+}
+
+// Genre with gradient colors
+data class GenreWithGradient(
+    val tag: RadioBrowserTag,
+    val gradientColors: List<Color>
+)
+
 data class RadioUiState(
     val isLoading: Boolean = true,
     // User's country (auto-detected)
     val userCountryCode: String = "ES",
     val userCountryName: String = "España",
-    // Currently selected country for browsing
-    val selectedCountryCode: String = "ES",
-    val selectedCountryName: String = "España",
-    // Selected genre filter (null = all)
-    val selectedGenre: String? = null,
-    // Data
+
+    // === SECTIONS DATA ===
+    // Favorites section
     val favorites: List<RadioStation> = emptyList(),
-    val stations: List<RadioBrowserStation> = emptyList(),
+    val favoriteIds: Set<String> = emptySet(),
+
+    // Local stations (user's country)
+    val localStations: List<RadioBrowserStation> = emptyList(),
+    val isLoadingLocal: Boolean = false,
+
+    // International stations (selected country)
+    val internationalCountryCode: String = "US",
+    val internationalCountryName: String = "Estados Unidos",
+    val internationalStations: List<RadioBrowserStation> = emptyList(),
+    val isLoadingInternational: Boolean = false,
+    val showInternationalCountryPicker: Boolean = false,
+
+    // Genre sections (top genres with stations)
+    val genreSections: List<GenreWithGradient> = emptyList(),
+    val genreStationsMap: Map<String, List<RadioBrowserStation>> = emptyMap(),
+    val isLoadingGenres: Boolean = false,
+
+    // All available data
     val genres: List<RadioBrowserTag> = emptyList(),
     val countries: List<RadioBrowserCountry> = emptyList(),
+
     // Search
     val searchQuery: String = "",
     val searchResults: List<RadioBrowserStation> = emptyList(),
     val isSearching: Boolean = false,
     val isSearchActive: Boolean = false,
-    // Country picker
-    val showCountryPicker: Boolean = false,
-    // Favorites tracking
-    val favoriteIds: Set<String> = emptySet(),
+
     // Playback state
     val isRadioPlaying: Boolean = false,
     val isRadioBuffering: Boolean = false,
     val currentPlayingStation: PlayableRadioStation? = null,
     val currentMetadata: RadioMetadata? = null,
     val signalStatus: RadioSignalStatus = RadioSignalStatus.UNKNOWN,
+
     // Error
     val error: String? = null
 )
@@ -67,6 +98,20 @@ class RadioViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(RadioUiState())
     val uiState: StateFlow<RadioUiState> = _uiState.asStateFlow()
 
+    // Gradient color palettes for genres (Apple Music style)
+    private val genreGradients = listOf(
+        listOf(Color(0xFFB4A700), Color(0xFF8B9A00)), // Olive/Yellow-green
+        listOf(Color(0xFF00A39E), Color(0xFF00857F)), // Teal/Cyan
+        listOf(Color(0xFFE85D75), Color(0xFFD4456B)), // Pink/Rose
+        listOf(Color(0xFFD4A017), Color(0xFFB8860B)), // Gold/Amber
+        listOf(Color(0xFF4A90D9), Color(0xFF357ABD)), // Blue
+        listOf(Color(0xFF8B5CF6), Color(0xFF7C3AED)), // Purple
+        listOf(Color(0xFFEF4444), Color(0xFFDC2626)), // Red
+        listOf(Color(0xFF10B981), Color(0xFF059669)), // Green
+        listOf(Color(0xFFF97316), Color(0xFFEA580C)), // Orange
+        listOf(Color(0xFF06B6D4), Color(0xFF0891B2)), // Cyan
+    )
+
     init {
         detectUserCountry()
         loadInitialData()
@@ -78,12 +123,16 @@ class RadioViewModel @Inject constructor(
         val countryCode = Locale.getDefault().country.uppercase()
         val countryName = Locale("", countryCode).displayCountry
 
+        // Set international country to a different popular country
+        val defaultInternational = if (countryCode == "US") "GB" else "US"
+        val internationalName = Locale("", defaultInternational).displayCountry
+
         _uiState.update {
             it.copy(
                 userCountryCode = countryCode,
                 userCountryName = countryName,
-                selectedCountryCode = countryCode,
-                selectedCountryName = countryName
+                internationalCountryCode = defaultInternational,
+                internationalCountryName = internationalName
             )
         }
     }
@@ -121,17 +170,7 @@ class RadioViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            // Load genres
-            launch {
-                radioRepository.getTags(30)
-                    .onSuccess { tags ->
-                        _uiState.update {
-                            it.copy(genres = tags.sortedByDescending { tag -> tag.stationcount })
-                        }
-                    }
-            }
-
-            // Load countries
+            // Load countries first
             launch {
                 radioRepository.getCountries()
                     .onSuccess { countries ->
@@ -141,78 +180,154 @@ class RadioViewModel @Inject constructor(
                     }
             }
 
-            // Load stations for user's country
-            loadStationsForCountry(_uiState.value.selectedCountryCode)
+            // Load genres and create sections with gradients
+            launch {
+                radioRepository.getTags(30)
+                    .onSuccess { tags ->
+                        val sortedTags = tags.sortedByDescending { it.stationcount }
+                        val genresWithGradients = sortedTags.take(8).mapIndexed { index, tag ->
+                            GenreWithGradient(
+                                tag = tag,
+                                gradientColors = genreGradients[index % genreGradients.size]
+                            )
+                        }
+                        _uiState.update {
+                            it.copy(
+                                genres = sortedTags,
+                                genreSections = genresWithGradients
+                            )
+                        }
+                    }
+            }
+
+            // Load local stations (user's country)
+            loadLocalStations()
+
+            // Load international stations
+            loadInternationalStations()
+
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
-    private fun loadStationsForCountry(countryCode: String) {
+    private fun loadLocalStations() {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoadingLocal = true) }
 
-            radioRepository.getByCountry(countryCode, 100)
+            radioRepository.getByCountry(_uiState.value.userCountryCode, 20)
                 .onSuccess { stations ->
                     _uiState.update {
                         it.copy(
-                            stations = stations.sortedByDescending { s -> s.clickcount },
-                            isLoading = false
+                            localStations = stations.sortedByDescending { s -> s.clickcount },
+                            isLoadingLocal = false
                         )
                     }
                 }
                 .onFailure {
-                    _uiState.update { it.copy(isLoading = false) }
+                    _uiState.update { it.copy(isLoadingLocal = false) }
                 }
         }
     }
 
-    fun selectCountry(country: RadioBrowserCountry) {
-        _uiState.update {
-            it.copy(
-                selectedCountryCode = country.isoCode,
-                selectedCountryName = country.name,
-                showCountryPicker = false,
-                selectedGenre = null
-            )
-        }
-        loadStationsForCountry(country.isoCode)
-    }
+    private fun loadInternationalStations() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingInternational = true) }
 
-    fun selectGenre(genre: String?) {
-        _uiState.update { it.copy(selectedGenre = genre) }
-
-        if (genre != null) {
-            // Filter current stations by genre or load new ones
-            viewModelScope.launch {
-                _uiState.update { it.copy(isLoading = true) }
-
-                // Search stations with both country and tag
-                radioRepository.searchStations(
-                    countryCode = _uiState.value.selectedCountryCode,
-                    tag = genre,
-                    limit = 100
-                ).onSuccess { stations ->
+            radioRepository.getByCountry(_uiState.value.internationalCountryCode, 20)
+                .onSuccess { stations ->
                     _uiState.update {
                         it.copy(
-                            stations = stations.sortedByDescending { s -> s.clickcount },
-                            isLoading = false
+                            internationalStations = stations.sortedByDescending { s -> s.clickcount },
+                            isLoadingInternational = false
                         )
                     }
-                }.onFailure {
-                    _uiState.update { it.copy(isLoading = false) }
                 }
-            }
-        } else {
-            // Reload all stations for country
-            loadStationsForCountry(_uiState.value.selectedCountryCode)
+                .onFailure {
+                    _uiState.update { it.copy(isLoadingInternational = false) }
+                }
         }
     }
 
-    fun showCountryPicker() {
-        _uiState.update { it.copy(showCountryPicker = true) }
+    fun loadStationsForGenre(genre: String) {
+        viewModelScope.launch {
+            // Check if already loaded
+            if (_uiState.value.genreStationsMap.containsKey(genre)) return@launch
+
+            radioRepository.getByTag(genre, 20)
+                .onSuccess { stations ->
+                    _uiState.update {
+                        it.copy(
+                            genreStationsMap = it.genreStationsMap + (genre to stations.sortedByDescending { s -> s.clickcount })
+                        )
+                    }
+                }
+        }
     }
 
-    fun hideCountryPicker() {
-        _uiState.update { it.copy(showCountryPicker = false) }
+    fun selectInternationalCountry(country: RadioBrowserCountry) {
+        _uiState.update {
+            it.copy(
+                internationalCountryCode = country.isoCode,
+                internationalCountryName = country.name,
+                showInternationalCountryPicker = false
+            )
+        }
+        loadInternationalStations()
+    }
+
+    fun showInternationalCountryPicker() {
+        _uiState.update { it.copy(showInternationalCountryPicker = true) }
+    }
+
+    fun hideInternationalCountryPicker() {
+        _uiState.update { it.copy(showInternationalCountryPicker = false) }
+    }
+
+    // Get all stations for a section (for detail screen)
+    fun getStationsForSection(sectionType: RadioSectionType, genreName: String? = null): List<RadioBrowserStation> {
+        return when (sectionType) {
+            RadioSectionType.LOCAL -> _uiState.value.localStations
+            RadioSectionType.INTERNATIONAL -> _uiState.value.internationalStations
+            RadioSectionType.GENRE -> genreName?.let { _uiState.value.genreStationsMap[it] } ?: emptyList()
+            RadioSectionType.FAVORITES -> emptyList() // Favorites use different model
+        }
+    }
+
+    // Load more stations for detail screen
+    fun loadMoreStationsForSection(sectionType: RadioSectionType, genreName: String? = null) {
+        viewModelScope.launch {
+            when (sectionType) {
+                RadioSectionType.LOCAL -> {
+                    radioRepository.getByCountry(_uiState.value.userCountryCode, 100)
+                        .onSuccess { stations ->
+                            _uiState.update {
+                                it.copy(localStations = stations.sortedByDescending { s -> s.clickcount })
+                            }
+                        }
+                }
+                RadioSectionType.INTERNATIONAL -> {
+                    radioRepository.getByCountry(_uiState.value.internationalCountryCode, 100)
+                        .onSuccess { stations ->
+                            _uiState.update {
+                                it.copy(internationalStations = stations.sortedByDescending { s -> s.clickcount })
+                            }
+                        }
+                }
+                RadioSectionType.GENRE -> {
+                    genreName?.let { genre ->
+                        radioRepository.getByTag(genre, 100)
+                            .onSuccess { stations ->
+                                _uiState.update {
+                                    it.copy(
+                                        genreStationsMap = it.genreStationsMap + (genre to stations.sortedByDescending { s -> s.clickcount })
+                                    )
+                                }
+                            }
+                    }
+                }
+                else -> {}
+            }
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -322,6 +437,7 @@ class RadioViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadStationsForCountry(_uiState.value.selectedCountryCode)
+        loadLocalStations()
+        loadInternationalStations()
     }
 }

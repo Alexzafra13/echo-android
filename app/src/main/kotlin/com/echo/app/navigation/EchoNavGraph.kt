@@ -18,6 +18,8 @@ import com.echo.feature.playlists.presentation.detail.PlaylistDetailScreen
 import com.echo.feature.home.presentation.HomeScreen
 import com.echo.feature.home.presentation.LibraryScreen
 import com.echo.feature.home.presentation.RadioScreen
+import com.echo.feature.home.presentation.RadioSectionDetailScreen
+import com.echo.feature.home.presentation.RadioSectionType
 import com.echo.feature.home.presentation.SocialScreen
 import com.echo.feature.player.presentation.PlayerScreen
 import com.echo.feature.search.presentation.SearchScreen
@@ -35,6 +37,7 @@ object EchoDestinations {
     const val SEARCH = "search"
     const val LIBRARY = "library"
     const val RADIO = "radio"
+    const val RADIO_SECTION_DETAIL = "radio_section"
     const val SOCIAL = "social"
     const val ALBUMS = "albums"
     const val ALBUM_DETAIL = "album"
@@ -177,7 +180,53 @@ fun EchoNavGraph(
 
         // Radio
         composable(EchoDestinations.RADIO) {
-            RadioScreen()
+            RadioScreen(
+                onNavigateToDetail = { sectionType, genreName, title ->
+                    val route = buildString {
+                        append("${EchoDestinations.RADIO_SECTION_DETAIL}/${sectionType.name}")
+                        append("?title=${java.net.URLEncoder.encode(title ?: "", "UTF-8")}")
+                        if (genreName != null) {
+                            append("&genre=${java.net.URLEncoder.encode(genreName, "UTF-8")}")
+                        }
+                    }
+                    navController.navigate(route)
+                }
+            )
+        }
+
+        // Radio Section Detail
+        composable(
+            route = "${EchoDestinations.RADIO_SECTION_DETAIL}/{sectionType}?title={title}&genre={genre}",
+            arguments = listOf(
+                navArgument("sectionType") { type = NavType.StringType },
+                navArgument("title") {
+                    type = NavType.StringType
+                    defaultValue = "Emisoras"
+                },
+                navArgument("genre") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val sectionTypeName = backStackEntry.arguments?.getString("sectionType") ?: "LOCAL"
+            val sectionType = try {
+                RadioSectionType.valueOf(sectionTypeName)
+            } catch (e: Exception) {
+                RadioSectionType.LOCAL
+            }
+            val title = backStackEntry.arguments?.getString("title") ?: "Emisoras"
+            val genreName = backStackEntry.arguments?.getString("genre")
+
+            RadioSectionDetailScreen(
+                sectionType = sectionType,
+                genreName = genreName,
+                title = title,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         // Social
