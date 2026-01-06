@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -42,11 +43,17 @@ class HomeViewModel @Inject constructor(
             _state.update { it.copy(isLoading = true, error = null) }
 
             try {
-                // Load all sections in parallel
-                val featuredResult = albumsRepository.getFeaturedAlbum()
-                val recentResult = albumsRepository.getRecentAlbums(10)
-                val topPlayedResult = albumsRepository.getTopPlayedAlbums(10)
-                val recentlyPlayedResult = albumsRepository.getRecentlyPlayedAlbums(10)
+                // Load all sections in parallel using async
+                val featuredDeferred = async { albumsRepository.getFeaturedAlbum() }
+                val recentDeferred = async { albumsRepository.getRecentAlbums(10) }
+                val topPlayedDeferred = async { albumsRepository.getTopPlayedAlbums(10) }
+                val recentlyPlayedDeferred = async { albumsRepository.getRecentlyPlayedAlbums(10) }
+
+                // Await all results concurrently
+                val featuredResult = featuredDeferred.await()
+                val recentResult = recentDeferred.await()
+                val topPlayedResult = topPlayedDeferred.await()
+                val recentlyPlayedResult = recentlyPlayedDeferred.await()
 
                 // Check if all requests failed
                 val allFailed = featuredResult.isFailure &&
