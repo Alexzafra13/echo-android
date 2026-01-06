@@ -56,8 +56,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,6 +71,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
@@ -370,44 +369,57 @@ private fun GenreChipsRow(
     onSelectGenre: (String?) -> Unit
 ) {
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(vertical = 4.dp)
     ) {
         // "All" chip
         item {
-            FilterChip(
+            GenreChip(
+                text = "Todas",
                 selected = selectedGenre == null,
-                onClick = { onSelectGenre(null) },
-                label = {
-                    Text(
-                        text = "Todas",
-                        fontWeight = if (selectedGenre == null) FontWeight.Bold else FontWeight.Normal
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = EchoCoral,
-                    selectedLabelColor = Color.White
-                )
+                onClick = { onSelectGenre(null) }
             )
         }
 
         // Genre chips
         items(genres) { genre ->
-            FilterChip(
+            GenreChip(
+                text = genre.replaceFirstChar { it.uppercase() },
                 selected = selectedGenre == genre,
-                onClick = { onSelectGenre(if (selectedGenre == genre) null else genre) },
-                label = {
-                    Text(
-                        text = genre.replaceFirstChar { it.uppercase() },
-                        fontWeight = if (selectedGenre == genre) FontWeight.Bold else FontWeight.Normal
-                    )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = EchoCoral,
-                    selectedLabelColor = Color.White
-                )
+                onClick = { onSelectGenre(if (selectedGenre == genre) null else genre) }
             )
         }
+    }
+}
+
+@Composable
+private fun GenreChip(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val backgroundColor by animateColorAsState(
+        targetValue = if (selected) EchoCoral else GlassWhite,
+        label = "chipBg"
+    )
+    val textColor by animateColorAsState(
+        targetValue = if (selected) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+        label = "chipText"
+    )
+
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .background(backgroundColor)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = textColor
+        )
     }
 }
 
@@ -559,94 +571,113 @@ private fun StationCard(
         colors = CardDefaults.cardColors(containerColor = cardColor),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                if (station.favicon.isNotEmpty()) {
-                    AsyncImage(
-                        model = station.favicon,
-                        contentDescription = station.name,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
+        Box {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (station.favicon.isNotEmpty()) {
+                        AsyncImage(
+                            model = station.favicon,
+                            contentDescription = station.name,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Radio,
+                                contentDescription = null,
+                                tint = EchoCoral.copy(alpha = 0.5f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+
+                    // Gradient overlay for better contrast
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Radio,
-                            contentDescription = null,
-                            tint = EchoCoral.copy(alpha = 0.5f),
-                            modifier = Modifier.size(40.dp)
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Black.copy(alpha = 0.4f),
+                                        Color.Transparent,
+                                        Color.Transparent
+                                    )
+                                )
+                            )
+                    )
+
+                    // Live badge
+                    if (isPlaying) {
+                        LiveBadge(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
                         )
                     }
                 }
 
-                // Live badge
-                if (isPlaying) {
-                    LiveBadge(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(8.dp)
-                    )
-                }
-
-                // Favorite button
-                IconButton(
-                    onClick = onToggleFavorite,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                        .size(32.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                Column(
+                    modifier = Modifier.padding(10.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = null,
-                        tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-            }
-
-            Column(
-                modifier = Modifier.padding(10.dp)
-            ) {
-                Text(
-                    text = station.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
-                if (station.displayTags.isNotEmpty()) {
                     Text(
-                        text = station.displayTags.take(2).joinToString(" • "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = station.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                }
 
-                if (station.bitrate > 0) {
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${station.codec} • ${station.bitrate}kbps",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = EchoCoral.copy(alpha = 0.8f),
-                        fontSize = 10.sp
-                    )
+
+                    if (station.displayTags.isNotEmpty()) {
+                        Text(
+                            text = station.displayTags.take(2).joinToString(" • "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    if (station.bitrate > 0) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "${station.codec} • ${station.bitrate}kbps",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = EchoCoral.copy(alpha = 0.8f),
+                            fontSize = 10.sp
+                        )
+                    }
                 }
+            }
+
+            // Favorite button - positioned inside card bounds
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable(onClick = onToggleFavorite),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = null,
+                    tint = if (isFavorite) Color(0xFFFF4081) else Color.White.copy(alpha = 0.9f),
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
