@@ -124,7 +124,7 @@ class RadioRepositoryTest {
     @Test
     fun `searchStations returns failure on exception`() = runTest {
         // Given
-        coEvery { radioBrowserApi.searchStations(any()) } throws RuntimeException("Network error")
+        coEvery { radioBrowserApi.searchStations(any<Map<String, String>>()) } answers { throw RuntimeException("Network error") }
 
         // When
         val result = repository.searchStations(name = "test")
@@ -156,7 +156,7 @@ class RadioRepositoryTest {
     @Test
     fun `getTopVoted returns failure on exception`() = runTest {
         // Given
-        coEvery { radioBrowserApi.getTopVoted(any()) } throws RuntimeException("Error")
+        coEvery { radioBrowserApi.getTopVoted(any<Int>()) } answers { throw RuntimeException("Error") }
 
         // When
         val result = repository.getTopVoted()
