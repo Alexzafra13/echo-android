@@ -9,7 +9,9 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
+import com.echo.core.media.model.PlayableRadioStation
 import com.echo.core.media.model.PlayableTrack
+import com.echo.core.media.model.RadioMetadata
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -278,6 +280,43 @@ class EchoPlayer @Inject constructor(
             )
         }
         exoPlayer.clearMediaItems()
+    }
+
+    /**
+     * Enter radio mode - called by RadioPlaybackManager when starting radio
+     */
+    fun enterRadioMode(station: PlayableRadioStation) {
+        _state.update {
+            it.copy(
+                isRadioMode = true,
+                currentRadioStation = station,
+                radioMetadata = null,
+                currentTrack = null,
+                queue = emptyList()
+            )
+        }
+    }
+
+    /**
+     * Exit radio mode - called when stopping radio or starting music
+     */
+    fun exitRadioMode() {
+        _state.update {
+            it.copy(
+                isRadioMode = false,
+                currentRadioStation = null,
+                radioMetadata = null
+            )
+        }
+    }
+
+    /**
+     * Update radio metadata - called by RadioPlaybackManager
+     */
+    fun updateRadioMetadata(metadata: RadioMetadata?) {
+        if (_state.value.isRadioMode) {
+            _state.update { it.copy(radioMetadata = metadata) }
+        }
     }
 
     fun skipToQueueItem(index: Int) {

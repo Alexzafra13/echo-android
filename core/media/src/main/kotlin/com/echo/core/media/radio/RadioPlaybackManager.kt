@@ -133,8 +133,9 @@ class RadioPlaybackManager @Inject constructor(
         // Disconnect from any previous metadata stream
         metadataService.disconnect()
 
-        // Clear any current track queue
+        // Clear any current track queue and enter radio mode
         echoPlayer.clearQueue()
+        echoPlayer.enterRadioMode(station)
 
         // Create media item for the radio station using factory
         val mediaItem = mediaItemFactory.createFromStation(station)
@@ -171,6 +172,7 @@ class RadioPlaybackManager @Inject constructor(
         metadataService.disconnect()
 
         echoPlayer.stop()
+        echoPlayer.exitRadioMode()
         _state.update {
             RadioPlaybackState(
                 isRadioMode = false,
@@ -219,6 +221,7 @@ class RadioPlaybackManager @Inject constructor(
     fun updateMetadata(metadata: RadioMetadata) {
         if (_state.value.isRadioMode) {
             _state.update { it.copy(metadata = metadata) }
+            echoPlayer.updateRadioMetadata(metadata)
 
             // Also update the MediaSession metadata for notifications
             _state.value.currentStation?.let { station ->
