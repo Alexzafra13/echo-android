@@ -8,7 +8,6 @@ import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.eq
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.flow.first
@@ -193,7 +192,7 @@ class RadioRepositoryTest {
     fun `getByCountry returns stations for country code`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioBrowserApi.getByCountry(eq("ES"), any(), any(), any(), any()) } returns stations
+        coEvery { radioBrowserApi.getByCountry("ES", any(), any(), any(), any()) } returns stations
 
         // When
         val result = repository.getByCountry("ES", 50)
@@ -211,7 +210,7 @@ class RadioRepositoryTest {
     fun `getByTag returns stations for tag`() = runTest {
         // Given
         val stations = listOf(testBrowserStation)
-        coEvery { radioBrowserApi.getByTag(eq("rock"), any(), any(), any(), any()) } returns stations
+        coEvery { radioBrowserApi.getByTag("rock", any(), any(), any(), any()) } returns stations
 
         // When
         val result = repository.getByTag("rock", 50)
