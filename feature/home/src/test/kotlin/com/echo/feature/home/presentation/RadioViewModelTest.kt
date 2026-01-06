@@ -109,7 +109,7 @@ class RadioViewModelTest {
         // Default repository responses
         coEvery { radioRepository.getTags(any()) } returns Result.success(emptyList<RadioBrowserTag>())
         coEvery { radioRepository.getCountries() } returns Result.success(emptyList<RadioBrowserCountry>())
-        coEvery { radioRepository.searchStations(any(), any(), any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
+        coEvery { radioRepository.searchStations(any(), any(), any(), any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
         coEvery { radioRepository.getByCountry(any(), any()) } returns Result.success(emptyList<RadioBrowserStation>())
         every { radioRepository.observeFavorites() } returns flowOf(emptyList())
     }
@@ -199,7 +199,7 @@ class RadioViewModelTest {
     fun `selectGenre filters stations by genre`() = runTest {
         // Given
         val genreStations = listOf(testBrowserStation)
-        coEvery { radioRepository.searchStations(any(), any(), any(), any()) } returns Result.success(genreStations)
+        coEvery { radioRepository.searchStations(any(), any(), any(), any(), any()) } returns Result.success(genreStations)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
