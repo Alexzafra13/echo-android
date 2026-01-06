@@ -1,8 +1,10 @@
 package com.echo.core.network.api
 
+import com.echo.core.datastore.preferences.ServerPreferences
 import com.echo.core.datastore.preferences.SessionPreferences
 import com.echo.core.network.interceptor.AuthInterceptor
 import com.echo.core.network.interceptor.ErrorInterceptor
+import com.echo.core.network.interceptor.TokenAuthenticator
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -18,9 +20,13 @@ import javax.inject.Singleton
 @Singleton
 class ApiClientFactory @Inject constructor(
     private val sessionPreferences: SessionPreferences,
+    private val serverPreferences: ServerPreferences,
     private val json: Json,
     @Named("isDebug") private val isDebug: Boolean
 ) {
+    private val tokenAuthenticator by lazy {
+        TokenAuthenticator(sessionPreferences, serverPreferences, json)
+    }
     private val clients = ConcurrentHashMap<String, Retrofit>()
 
     fun getClient(baseUrl: String): Retrofit {
@@ -46,6 +52,7 @@ class ApiClientFactory @Inject constructor(
         val okHttpClientBuilder = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(errorInterceptor)
+            .authenticator(tokenAuthenticator)
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
