@@ -1,5 +1,6 @@
 package com.echo.feature.home.data.repository
 
+import android.util.Log
 import com.echo.core.database.dao.FavoriteRadioStationDao
 import com.echo.core.database.entity.FavoriteRadioStationEntity
 import com.echo.feature.home.data.api.RadioBrowserApiService
@@ -8,11 +9,15 @@ import com.echo.feature.home.data.model.RadioBrowserStation
 import com.echo.feature.home.data.model.RadioBrowserTag
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -57,9 +62,19 @@ class RadioRepositoryTest {
 
     @Before
     fun setup() {
+        // Mock android.util.Log to avoid RuntimeException in unit tests
+        mockkStatic(Log::class)
+        every { Log.e(any(), any(), any<Throwable>()) } returns 0
+        every { Log.e(any(), any()) } returns 0
+
         radioBrowserApi = mockk(relaxed = true)
         favoriteRadioStationDao = mockk(relaxed = true)
         repository = RadioRepository(radioBrowserApi, favoriteRadioStationDao)
+    }
+
+    @After
+    fun tearDown() {
+        unmockkStatic(Log::class)
     }
 
     // ============================================
