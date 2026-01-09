@@ -94,9 +94,11 @@ class AdminViewModel @Inject constructor(
                 // Load server info
                 _state.value = _state.value.copy(
                     serverOnline = true,
-                    serverVersion = server?.version ?: "Echo Server",
+                    serverVersion = "Echo Server",
                     serverName = server?.name ?: "Echo Server",
-                    serverPort = 4533
+                    serverPort = server?.url?.let { url ->
+                        try { java.net.URL(url).port.takeIf { it != -1 } ?: 4533 } catch (_: Exception) { 4533 }
+                    } ?: 4533
                 )
 
                 // Load logs from API
