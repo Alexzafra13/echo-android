@@ -24,6 +24,7 @@ rootProject.name = "Echo"
 
 // App modules
 include(":app")
+include(":app-tv")      // Android TV
 include(":automotive")  // Android Auto
 
 // Core modules
