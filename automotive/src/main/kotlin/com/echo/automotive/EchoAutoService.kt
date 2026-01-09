@@ -239,5 +239,11 @@ class EchoAutoService : MediaBrowserServiceCompat() {
             // TODO: Load and play the track with the given mediaId
             // This is called when user selects a track in Android Auto
         }
+
+        override fun onPlayFromSearch(query: String?, extras: Bundle?) {
+            // TODO: Implement voice search
+            // This is called when user says "OK Google, play [song/artist/album]"
+            // Parse the query and extras to find matching content
+        }
     }
 }
