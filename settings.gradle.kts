@@ -22,8 +22,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "Echo"
 
-// App module
+// App modules
 include(":app")
+include(":app-tv")      // Android TV
+include(":automotive")  // Android Auto
 
 // Core modules
 include(":core:common")

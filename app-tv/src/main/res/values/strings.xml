@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Echo TV</string>
+
+    <!-- Navigation -->
+    <string name="title_home">Inicio</string>
+    <string name="title_search">Buscar</string>
+    <string name="title_library">Biblioteca</string>
+    <string name="title_settings">Ajustes</string>
+
+    <!-- Content sections -->
+    <string name="section_recently_played">Reproducido recientemente</string>
+    <string name="section_albums">Álbumes</string>
+    <string name="section_artists">Artistas</string>
+    <string name="section_playlists">Playlists</string>
+
+    <!-- Player -->
+    <string name="now_playing">Reproduciendo ahora</string>
+    <string name="play">Reproducir</string>
+    <string name="pause">Pausar</string>
+    <string name="next">Siguiente</string>
+    <string name="previous">Anterior</string>
+</resources>

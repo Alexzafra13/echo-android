@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Echo Auto</string>
+
+    <!-- Media Browser root IDs -->
+    <string name="root_id">echo_root</string>
+    <string name="albums_id">albums</string>
+    <string name="artists_id">artists</string>
+    <string name="playlists_id">playlists</string>
+    <string name="recent_id">recent</string>
+
+    <!-- Display titles -->
+    <string name="title_albums">Albums</string>
+    <string name="title_artists">Artists</string>
+    <string name="title_playlists">Playlists</string>
+    <string name="title_recent">Recently Played</string>
+</resources>
