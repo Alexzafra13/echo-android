@@ -23,7 +23,9 @@ data class AlbumDetailState(
     val album: Album? = null,
     val tracks: List<Track> = emptyList(),
     val currentPlayingTrackId: String? = null,
-    val isPlaying: Boolean = false
+    val isPlaying: Boolean = false,
+    val showAlbumMenu: Boolean = false,
+    val selectedTrackForMenu: Track? = null
 )
 
 @HiltViewModel
@@ -139,5 +141,60 @@ class AlbumDetailViewModel @Inject constructor(
             trackNumber = trackNumber ?: 0,
             coverUrl = coverUrl ?: album.coverUrl
         )
+    }
+
+    // Menu management
+    fun showAlbumMenu() {
+        _state.update { it.copy(showAlbumMenu = true) }
+    }
+
+    fun hideAlbumMenu() {
+        _state.update { it.copy(showAlbumMenu = false) }
+    }
+
+    fun showTrackMenu(track: Track) {
+        _state.update { it.copy(selectedTrackForMenu = track) }
+    }
+
+    fun hideTrackMenu() {
+        _state.update { it.copy(selectedTrackForMenu = null) }
+    }
+
+    // Queue operations
+    fun addTrackToQueue(track: Track) {
+        val album = _state.value.album ?: return
+        viewModelScope.launch {
+            try {
+                playTracksUseCase.addToQueue(track.toTrackInfo(album))
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
+    }
+
+    fun playTrackNext(track: Track) {
+        val album = _state.value.album ?: return
+        viewModelScope.launch {
+            try {
+                playTracksUseCase.playNext(track.toTrackInfo(album))
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
+    }
+
+    fun addAlbumToQueue() {
+        val album = _state.value.album ?: return
+        val tracks = _state.value.tracks
+        if (tracks.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                val trackInfos = tracks.map { it.toTrackInfo(album) }
+                trackInfos.forEach { playTracksUseCase.addToQueue(it) }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
     }
 }

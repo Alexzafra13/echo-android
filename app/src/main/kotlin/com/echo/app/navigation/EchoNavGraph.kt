@@ -22,6 +22,7 @@ import com.echo.feature.home.presentation.RadioSectionDetailScreen
 import com.echo.feature.home.presentation.RadioSectionType
 import com.echo.feature.home.presentation.SocialScreen
 import com.echo.feature.player.presentation.PlayerScreen
+import com.echo.feature.player.presentation.QueueScreen
 import com.echo.feature.search.presentation.SearchScreen
 import com.echo.feature.server.presentation.addserver.AddServerScreen
 import com.echo.feature.server.presentation.welcome.WelcomeScreen
@@ -323,6 +324,13 @@ fun EchoNavGraph(
             )
         }
 
-        // TODO: Add remaining destinations (artists, queue, search, etc.)
+        // Queue
+        composable(EchoDestinations.QUEUE) {
+            QueueScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }

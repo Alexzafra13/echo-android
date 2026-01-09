@@ -26,7 +26,10 @@ data class LibraryState(
     val isLoading: Boolean = false,
     val isLoadingArtists: Boolean = false,
     val isLoadingPlaylists: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val showCreatePlaylistDialog: Boolean = false,
+    val isCreatingPlaylist: Boolean = false,
+    val createPlaylistError: String? = null
 )
 
 @HiltViewModel
@@ -144,5 +147,50 @@ class LibraryViewModel @Inject constructor(
         loadAlbums()
         loadArtists()
         loadPlaylists()
+    }
+
+    fun showCreatePlaylistDialog() {
+        _state.update {
+            it.copy(
+                showCreatePlaylistDialog = true,
+                createPlaylistError = null
+            )
+        }
+    }
+
+    fun hideCreatePlaylistDialog() {
+        _state.update {
+            it.copy(
+                showCreatePlaylistDialog = false,
+                isCreatingPlaylist = false,
+                createPlaylistError = null
+            )
+        }
+    }
+
+    fun createPlaylist(name: String, description: String?) {
+        viewModelScope.launch {
+            _state.update { it.copy(isCreatingPlaylist = true, createPlaylistError = null) }
+
+            playlistsRepository.createPlaylist(name, description)
+                .onSuccess { newPlaylist ->
+                    _state.update {
+                        it.copy(
+                            playlists = listOf(newPlaylist) + it.playlists,
+                            showCreatePlaylistDialog = false,
+                            isCreatingPlaylist = false,
+                            createPlaylistError = null
+                        )
+                    }
+                }
+                .onFailure { error ->
+                    _state.update {
+                        it.copy(
+                            isCreatingPlaylist = false,
+                            createPlaylistError = error.message ?: "Error al crear la playlist"
+                        )
+                    }
+                }
+        }
     }
 }

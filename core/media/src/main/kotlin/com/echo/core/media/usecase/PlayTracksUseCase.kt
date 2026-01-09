@@ -103,6 +103,22 @@ class PlayTracksUseCase @Inject constructor(
     }
 
     /**
+     * Add a track to the queue using TrackInfo
+     */
+    suspend fun addToQueue(track: TrackInfo) {
+        addToQueue(
+            trackId = track.id,
+            title = track.title,
+            artist = track.artist,
+            albumId = track.albumId,
+            albumTitle = track.albumTitle,
+            duration = track.duration,
+            trackNumber = track.trackNumber,
+            coverUrl = track.coverUrl
+        )
+    }
+
+    /**
      * Play a track next (after current track)
      */
     suspend fun playNext(
@@ -128,6 +144,22 @@ class PlayTracksUseCase @Inject constructor(
             streamUrl = streamUrl
         )
         player.playNext(playableTrack)
+    }
+
+    /**
+     * Play a track next using TrackInfo
+     */
+    suspend fun playNext(track: TrackInfo) {
+        playNext(
+            trackId = track.id,
+            title = track.title,
+            artist = track.artist,
+            albumId = track.albumId,
+            albumTitle = track.albumTitle,
+            duration = track.duration,
+            trackNumber = track.trackNumber,
+            coverUrl = track.coverUrl
+        )
     }
 
     /**
