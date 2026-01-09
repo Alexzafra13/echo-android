@@ -431,7 +431,7 @@ private fun PlaylistsTab(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                    imageVector = Icons.Default.QueueMusic,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(64.dp)
