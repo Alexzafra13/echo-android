@@ -51,6 +51,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/*.kotlin_module"
         }
     }
 }
@@ -59,18 +61,8 @@ dependencies {
     // Core modules - shared with mobile app
     implementation(project(":core:common"))
     implementation(project(":core:network"))
-    implementation(project(":core:database"))
     implementation(project(":core:datastore"))
     implementation(project(":core:media"))
-
-    // Feature modules - data/domain layers shared
-    implementation(project(":feature:server"))
-    implementation(project(":feature:auth"))
-    implementation(project(":feature:albums"))
-    implementation(project(":feature:artists"))
-    implementation(project(":feature:playlists"))
-    implementation(project(":feature:player"))
-    implementation(project(":feature:search"))
 
     // AndroidX
     implementation(libs.androidx.core.ktx)
@@ -79,21 +71,18 @@ dependencies {
 
     // Compose for TV
     implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.bundles.compose)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons)
     debugImplementation(libs.bundles.compose.debug)
 
     // TV specific - Leanback
     implementation(libs.androidx.leanback)
-    implementation(libs.androidx.tv.foundation)
-    implementation(libs.androidx.tv.material)
-
-    // Navigation
-    implementation(libs.androidx.navigation.compose)
 
     // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
-    implementation(libs.hilt.navigation.compose)
 
     // Media
     implementation(libs.bundles.media3)
