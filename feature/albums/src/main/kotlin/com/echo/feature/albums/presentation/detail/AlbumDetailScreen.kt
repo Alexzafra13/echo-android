@@ -39,7 +39,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -56,6 +58,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
+import com.echo.core.ui.components.AlbumMenuActions
+import com.echo.core.ui.components.AlbumOptionsMenu
+import com.echo.core.ui.components.TrackMenuActions
+import com.echo.core.ui.components.TrackOptionsMenu
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.feature.albums.domain.model.Album
 import com.echo.feature.albums.domain.model.Track
@@ -112,11 +118,34 @@ fun AlbumDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Show menu */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Más opciones"
-                        )
+                    Box {
+                        IconButton(onClick = { viewModel.showAlbumMenu() }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Más opciones"
+                            )
+                        }
+
+                        state.album?.let { album ->
+                            AlbumOptionsMenu(
+                                expanded = state.showAlbumMenu,
+                                onDismiss = { viewModel.hideAlbumMenu() },
+                                actions = AlbumMenuActions(
+                                    onPlay = {
+                                        viewModel.playAlbum()
+                                    },
+                                    onShuffle = {
+                                        viewModel.shuffleAlbum()
+                                    },
+                                    onAddToQueue = {
+                                        viewModel.addAlbumToQueue()
+                                    },
+                                    onGoToArtist = {
+                                        onNavigateToArtist(album.artistId)
+                                    }
+                                )
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -157,7 +186,9 @@ fun AlbumDetailScreen(
                     onPlayClick = { viewModel.playAlbum() },
                     onShuffleClick = { viewModel.shuffleAlbum() },
                     onTrackClick = { viewModel.playTrack(it) },
-                    onArtistClick = { onNavigateToArtist(album.artistId) }
+                    onArtistClick = { onNavigateToArtist(album.artistId) },
+                    onAddTrackToQueue = { viewModel.addTrackToQueue(it) },
+                    onPlayTrackNext = { viewModel.playTrackNext(it) }
                 )
             }
         }
@@ -174,7 +205,9 @@ private fun AlbumDetailContent(
     onPlayClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onTrackClick: (Track) -> Unit,
-    onArtistClick: () -> Unit
+    onArtistClick: () -> Unit,
+    onAddTrackToQueue: (Track) -> Unit,
+    onPlayTrackNext: (Track) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -199,7 +232,9 @@ private fun AlbumDetailContent(
                 index = index + 1,
                 isCurrentlyPlaying = isCurrentTrack,
                 isPlaying = isCurrentTrack && isPlaying,
-                onClick = { onTrackClick(track) }
+                onClick = { onTrackClick(track) },
+                onAddToQueue = { onAddTrackToQueue(track) },
+                onPlayNext = { onPlayTrackNext(track) }
             )
         }
     }
@@ -422,8 +457,11 @@ private fun TrackItem(
     index: Int,
     isCurrentlyPlaying: Boolean,
     isPlaying: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onPlayNext: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     val trackColor = if (isCurrentlyPlaying) EchoCoral else MaterialTheme.colorScheme.onBackground
     val subtitleColor = if (isCurrentlyPlaying) EchoCoral.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -486,13 +524,24 @@ private fun TrackItem(
             color = subtitleColor
         )
 
-        // More options
-        IconButton(onClick = { /* TODO: Show track menu */ }) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Más opciones",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
+        // More options with menu
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Más opciones",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            TrackOptionsMenu(
+                expanded = showMenu,
+                onDismiss = { showMenu = false },
+                actions = TrackMenuActions(
+                    onAddToQueue = onAddToQueue,
+                    onPlayNext = onPlayNext
+                )
             )
         }
     }

@@ -21,7 +21,8 @@ data class PlaylistDetailState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val playlist: Playlist? = null,
-    val tracks: List<PlaylistTrack> = emptyList()
+    val tracks: List<PlaylistTrack> = emptyList(),
+    val showPlaylistMenu: Boolean = false
 )
 
 @HiltViewModel
@@ -147,5 +148,53 @@ class PlaylistDetailViewModel @Inject constructor(
             trackNumber = trackNumber ?: order,
             coverUrl = coverUrl
         )
+    }
+
+    // Menu management
+    fun showPlaylistMenu() {
+        _state.update { it.copy(showPlaylistMenu = true) }
+    }
+
+    fun hidePlaylistMenu() {
+        _state.update { it.copy(showPlaylistMenu = false) }
+    }
+
+    // Queue operations
+    fun addTrackToQueue(track: PlaylistTrack) {
+        val playlist = _state.value.playlist ?: return
+        viewModelScope.launch {
+            try {
+                playTracksUseCase.addToQueue(track.toTrackInfo(playlist))
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
+    }
+
+    fun playTrackNext(track: PlaylistTrack) {
+        val playlist = _state.value.playlist ?: return
+        viewModelScope.launch {
+            try {
+                playTracksUseCase.playNext(track.toTrackInfo(playlist))
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
+    }
+
+    fun addPlaylistToQueue() {
+        val playlist = _state.value.playlist ?: return
+        val tracks = _state.value.tracks
+        if (tracks.isEmpty()) return
+
+        viewModelScope.launch {
+            try {
+                tracks.forEach { track ->
+                    playTracksUseCase.addToQueue(track.toTrackInfo(playlist))
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.localizedMessage) }
+            }
+        }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
@@ -56,6 +57,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.echo.core.ui.components.TrackMenuActions
+import com.echo.core.ui.components.TrackOptionsMenu
 import com.echo.core.ui.theme.EchoCoral
 import com.echo.core.ui.theme.EchoDarkSurfaceVariant
 import com.echo.feature.playlists.domain.model.Playlist
@@ -83,11 +86,58 @@ fun PlaylistDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { /* TODO: Show menu */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Más opciones"
-                        )
+                    Box {
+                        IconButton(onClick = { viewModel.showPlaylistMenu() }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Más opciones"
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = state.showPlaylistMenu,
+                            onDismissRequest = { viewModel.hidePlaylistMenu() }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Reproducir") },
+                                onClick = {
+                                    viewModel.hidePlaylistMenu()
+                                    viewModel.playPlaylist()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Reproducir en aleatorio") },
+                                onClick = {
+                                    viewModel.hidePlaylistMenu()
+                                    viewModel.shufflePlaylist()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Shuffle,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Agregar a la cola") },
+                                onClick = {
+                                    viewModel.hidePlaylistMenu()
+                                    viewModel.addPlaylistToQueue()
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.QueueMusic,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -130,7 +180,9 @@ fun PlaylistDetailScreen(
                         onShuffleClick = { viewModel.shufflePlaylist() },
                         onTrackClick = { viewModel.playTrack(it) },
                         onRemoveTrack = { viewModel.removeTrack(it) },
-                        onAlbumClick = onNavigateToAlbum
+                        onAlbumClick = onNavigateToAlbum,
+                        onAddTrackToQueue = { viewModel.addTrackToQueue(it) },
+                        onPlayTrackNext = { viewModel.playTrackNext(it) }
                     )
                 }
             }
@@ -147,7 +199,9 @@ private fun PlaylistDetailContent(
     onShuffleClick: () -> Unit,
     onTrackClick: (PlaylistTrack) -> Unit,
     onRemoveTrack: (PlaylistTrack) -> Unit,
-    onAlbumClick: (String) -> Unit
+    onAlbumClick: (String) -> Unit,
+    onAddTrackToQueue: (PlaylistTrack) -> Unit,
+    onPlayTrackNext: (PlaylistTrack) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -175,7 +229,9 @@ private fun PlaylistDetailContent(
                     index = index + 1,
                     onClick = { onTrackClick(track) },
                     onRemove = { onRemoveTrack(track) },
-                    onAlbumClick = { track.albumId?.let { onAlbumClick(it) } }
+                    onAlbumClick = { track.albumId?.let { onAlbumClick(it) } },
+                    onAddToQueue = { onAddTrackToQueue(track) },
+                    onPlayNext = { onPlayTrackNext(track) }
                 )
             }
         }
@@ -404,7 +460,9 @@ private fun TrackItem(
     index: Int,
     onClick: () -> Unit,
     onRemove: () -> Unit,
-    onAlbumClick: () -> Unit
+    onAlbumClick: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onPlayNext: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -480,7 +538,7 @@ private fun TrackItem(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        // More options
+        // More options with TrackOptionsMenu
         Box {
             IconButton(onClick = { showMenu = true }) {
                 Icon(
@@ -491,33 +549,16 @@ private fun TrackItem(
                 )
             }
 
-            DropdownMenu(
+            TrackOptionsMenu(
                 expanded = showMenu,
-                onDismissRequest = { showMenu = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Ir al álbum") },
-                    onClick = {
-                        showMenu = false
-                        onAlbumClick()
-                    },
-                    enabled = track.albumId != null
+                onDismiss = { showMenu = false },
+                actions = TrackMenuActions(
+                    onAddToQueue = onAddToQueue,
+                    onPlayNext = onPlayNext,
+                    onGoToAlbum = if (track.albumId != null) onAlbumClick else null,
+                    onRemoveFromPlaylist = onRemove
                 )
-                DropdownMenuItem(
-                    text = { Text("Eliminar de playlist") },
-                    onClick = {
-                        showMenu = false
-                        onRemove()
-                    },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.error
-                        )
-                    }
-                )
-            }
+            )
         }
     }
 }

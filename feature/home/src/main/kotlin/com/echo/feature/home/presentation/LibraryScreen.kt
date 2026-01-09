@@ -83,6 +83,18 @@ fun LibraryScreen(
     var sortOption by remember { mutableStateOf(SortOption.RECENT) }
     val tabs = listOf("Albums", "Artistas", "Playlists")
 
+    // Create Playlist Dialog
+    if (state.showCreatePlaylistDialog) {
+        CreatePlaylistDialog(
+            isLoading = state.isCreatingPlaylist,
+            error = state.createPlaylistError,
+            onDismiss = { viewModel.hideCreatePlaylistDialog() },
+            onCreate = { name, description ->
+                viewModel.createPlaylist(name, description)
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -142,7 +154,8 @@ fun LibraryScreen(
             2 -> PlaylistsTab(
                 playlists = state.playlists,
                 isLoading = state.isLoadingPlaylists,
-                onPlaylistClick = onNavigateToPlaylist
+                onPlaylistClick = onNavigateToPlaylist,
+                onCreateClick = { viewModel.showCreatePlaylistDialog() }
             )
         }
     }
@@ -403,7 +416,8 @@ private fun ArtistItem(
 private fun PlaylistsTab(
     playlists: List<Playlist>,
     isLoading: Boolean,
-    onPlaylistClick: (String) -> Unit
+    onPlaylistClick: (String) -> Unit,
+    onCreateClick: () -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         if (isLoading) {
@@ -452,7 +466,7 @@ private fun PlaylistsTab(
 
         // FAB for creating playlist
         FloatingActionButton(
-            onClick = { /* TODO: Create playlist */ },
+            onClick = onCreateClick,
             containerColor = EchoCoral,
             contentColor = Color.White,
             modifier = Modifier
